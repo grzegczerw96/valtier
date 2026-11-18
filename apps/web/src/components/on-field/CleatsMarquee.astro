@@ -1,0 +1,92 @@
+---
+import { cleats } from '../../content/on-field';
+const TILT = [0.9, -1.1, 0.6, -0.8];
+const half = Math.floor(cleats.items.length / 2);
+const rowB = [...cleats.items.slice(half), ...cleats.items.slice(0, half)];
+---
+<section class="cleats cv-auto" style="--cv-h:830px" data-tone="dark" aria-label="Bringing style to the turf" data-cleats>
+  {[{ row: cleats.items, speed: 0.42, cls: 'cleats__row--a' }, { row: rowB, speed: 0.3, cls: 'cleats__row--b' }].map(({ row, speed, cls }, ri) => (
+    <>
+      <div class:list={['cleats__row', cls]}>
+        <div class="cleats__track" data-drift={speed} data-repeat="3">
+          <div class="cleats__set">
+            {row.map((c) => (
+              <div class="cleats__cell" data-sound-card>
+                <span class="cleats__shoe">
+                  <img src={c.src} alt={ri === 0 ? c.title : ''} width="528" height="472" loading="lazy" decoding="async" draggable="false" />
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      {ri === 0 && (
+        <div class="cleats__phrases">
+          <div class="cleats__track" data-drift="0.5" data-mirror data-min="8">
+            <div class="cleats__set">
+              {cleats.phrases.map((p, i) => (
+                <span class="cleats__phrase-wrap"><span class="label cleats__phrase" style={`--r:${TILT[i % TILT.length]}deg`}>{p}</span></span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  ))}
+</section>
+
+<script>
+  window.vDefer(async () => {
+    const { initDrift } = await import('@valtier/ds/motion/drift');
+    const { whenNear } = await import('@valtier/ds/motion/inview');
+    const { isPhone } = await import('@valtier/ds/motion/env');
+    await window.vIdle();
+    const TILT = [0.9, -1.1, 0.6, -0.8];
+    const section = document.querySelector<HTMLElement>('[data-cleats]');
+    if (section) whenNear(section, () => window.vDefer(() => {
+      const phone = isPhone();
+      section.querySelectorAll<HTMLElement>('[data-drift]').forEach((track) => {
+        const set = track.firstElementChild as HTMLElement;
+        const base = Array.from(set.children);
+        // Row length: shoes x3 on desktop (x1 on phones); phrases padded to >= 8 and re-tilted.
+        const target = track.dataset.min ? Math.max(+track.dataset.min, Math.ceil(+track.dataset.min / base.length) * base.length) : base.length * (phone ? 1 : +(track.dataset.repeat || 1));
+        for (let i = base.length; i < target; i++) {
+          const c = base[i % base.length].cloneNode(true) as HTMLElement;
+          c.querySelector('img')?.setAttribute('alt', '');
+          const tag = c.querySelector<HTMLElement>('.cleats__phrase');
+          if (tag) tag.style.setProperty('--r', `${TILT[i % TILT.length]}deg`);
+          c.setAttribute('aria-hidden', 'true');
+          set.append(c);
+        }
+        const copy = set.cloneNode(true) as HTMLElement;
+        copy.setAttribute('aria-hidden', 'true');
+        copy.querySelectorAll('img').forEach((im) => im.setAttribute('alt', ''));
+        track.append(copy);
+        initDrift(track, { baseSpeed: parseFloat(track.dataset.drift || '0.35'), mirror: track.hasAttribute('data-mirror') });
+      });
+    }));
+  });
+</script>
+
+<style>
+  .cleats { position: relative; overflow: hidden; padding-block: 3rem; color: var(--color-bone); }
+  .cleats__row { margin-block: -5rem; overflow: hidden; padding-block: 5rem; }
+  .cleats__track { display: flex; width: max-content; align-items: center; }
+  .cleats__set { display: flex; flex-shrink: 0; align-items: center; }
+  .cleats__cell { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 228px; height: 200px; }
+  .cleats__shoe { position: relative; display: block; width: 196px; height: 150px; transition: transform 0.5s var(--ease-out); }
+  .cleats__cell:hover .cleats__shoe { transform: scale(1.07); }
+  .cleats__shoe img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+  .cleats__phrases { overflow: hidden; padding-block: 1.25rem; }
+  .cleats__phrase-wrap { flex-shrink: 0; padding-right: 3rem; }
+  .cleats__phrase { display: inline-block; padding: 0.375rem 1rem; background: var(--color-bone); color: var(--color-ink-deep); transform: rotate(var(--r)); white-space: nowrap; }
+  @media (min-width: 768px) {
+    .cleats { padding-block: 4rem; }
+    .cleats__cell { width: min(316px, calc(39.5 * var(--of-vh))); height: min(316px, calc(39.5 * var(--of-vh))); }
+    .cleats__shoe { width: min(264px, calc(33 * var(--of-vh))); height: min(236px, calc(29.5 * var(--of-vh))); }
+  }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
+    .cleats__row--b { display: none; }
+    .cleats__phrase { transform: none; }
+  }
+</style>

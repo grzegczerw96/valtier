@@ -1,0 +1,188 @@
+---
+import { BASE, withBase } from '../lib/base';
+import Logo from './Logo.astro';
+import SocialIcon, { PLATFORM_LABEL } from './SocialIcon.astro';
+import { HAMBURGER } from '../motion/menu';
+import type { SiteSettings } from '../lib/types';
+interface Props { settings: SiteSettings; current: string }
+const { settings, current } = Astro.props;
+const links = settings.navLinks;
+const rows = [links.slice(0, 4), links.slice(4)];
+const home = withBase('/');
+const isCurrent = (href: string) => (href === home ? current === home || current === BASE : current.startsWith(href));
+---
+<div data-menu-root>
+  <header class="nav" data-nav>
+    <a href={withBase("/")} class="nav__logo" aria-label={`${settings.brandName} — home`} data-nav-logo>
+      <span class="nav__logo-inner"><Logo class="nav__logo-svg" label={settings.brandName} /></span>
+    </a>
+    <button type="button" class="hamburger" data-hamburger data-state="closed" aria-label="Open menu" aria-expanded="false" aria-controls="site-navigation">
+      <svg viewBox="0 0 30 13" aria-hidden="true" class="hamburger__svg">
+        <path class="hamburger-bar hamburger-bar--top" fill="currentColor" d={HAMBURGER.top} />
+        <path class="hamburger-bar hamburger-bar--bot" fill="currentColor" d={HAMBURGER.bot} />
+      </svg>
+    </button>
+  </header>
+
+  <div id="site-navigation" class="menu" data-lenis-prevent data-open="false" aria-hidden="true" inert>
+    <div class="menu__grain" aria-hidden="true"></div>
+    <div class="menu__layout">
+      <nav aria-label="Main navigation" class="menu__links">
+        {rows.map((row, ri) => (
+          <div class="menu__row">
+            {row.map((l, i) => {
+              const idx = ri * 4 + i;
+              const cur = isCurrent(l.href);
+              return (
+                <a href={l.href} class="menu-link menu__link display" aria-current={cur ? 'page' : undefined} style={`--i:${idx}`}>
+                  <span class="menu-link-lift">
+                    <span class={cur ? 'menu__label is-current' : 'menu__label'}>{l.label}</span>
+                    {!cur && <span class="menu-link-fill menu__fill" aria-hidden="true">{l.label}</span>}
+                  </span>
+                </a>
+              );
+            })}
+          </div>
+        ))}
+        <ul class="menu__socials">
+          {settings.socialLinks.map((s) => (
+            <li><a href={s.url} target="_blank" rel="noreferrer" aria-label={PLATFORM_LABEL[s.platform]}><SocialIcon platform={s.platform} class="menu__social-icon" /></a></li>
+          ))}
+        </ul>
+      </nav>
+    </div>
+    <div class="menu__credits">
+      <span class="menu__credits-a">
+        <span class="menu__copy">© {settings.legalName}</span>
+        <a href={settings.studioCredit.href} target="_blank" rel="noreferrer" class="menu__studio">{settings.studioCredit.label}</a>
+      </span>
+      <span class="menu__legal">{settings.legalLinks.map((l) => <a href={l.href}>{l.label}</a>)}</span>
+      <a href={settings.footerCredit.href} target="_blank" rel="noreferrer" class="menu__credit">{settings.footerCredit.label}</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.vDefer(async () => {
+    const { initMenu } = await import('../motion/menu');
+    await window.vIdle();
+    const root = document.querySelector<HTMLElement>('[data-menu-root]');
+    if (root) initMenu(root);
+  });
+</script>
+
+<style is:global>
+  .nav {
+    position: fixed; inset: 0 0 auto; z-index: var(--z-nav); pointer-events: none;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.25rem var(--gutter);
+  }
+  @media (min-width: 768px) { .nav { padding: 1.75rem calc(var(--page-x) + var(--gutter-lg)); } }
+  .nav__logo { pointer-events: auto; position: relative; display: block; color: var(--logo-color); transition: opacity 0.3s, color var(--dur-theme) var(--ease-editorial); }
+  .nav__logo::after { content: ''; position: absolute; inset: -0.75rem; }
+  .nav__logo-inner { display: block; transform-origin: center; transition: scale 0.3s var(--ease-out); }
+  .nav__logo-svg { height: 2.5rem; width: auto; filter: var(--hamburger-halo); }
+  @media (min-width: 768px) { .nav__logo-svg { height: 3rem; } }
+  @media (prefers-reduced-motion: no-preference) {
+    .nav__logo:hover .nav__logo-inner { scale: 1.1; }
+    .nav__logo:active .nav__logo-inner { scale: 1.05; }
+  }
+  @media (min-width: 901px), (pointer: fine) {
+    html[data-footer-active] .nav__logo { opacity: 0; pointer-events: none; }
+  }
+  body.menu-open .nav__logo { opacity: 1 !important; pointer-events: auto; }
+  body.menu-open .nav { --logo-color: var(--color-bone-warm); }
+
+  .hamburger {
+    pointer-events: auto; margin: -1rem; padding: 1rem; display: inline-flex; align-items: center; justify-content: center;
+    color: var(--logo-color, var(--color-ink-deep));
+    transition: color var(--dur-theme) var(--ease-editorial), opacity 0.3s;
+  }
+  body.menu-open .hamburger { transition: color 0.25s var(--ease-ui); }
+  .hamburger__svg { height: 0.75rem; width: auto; overflow: visible; filter: var(--hamburger-halo, none); }
+  @media (min-width: 768px) { .hamburger__svg { height: 0.875rem; } }
+  .hamburger-bar { transform-box: fill-box; transform-origin: 50%; transition: transform 0.18s var(--ease-snap); }
+  .hamburger:not([data-state='open']):hover .hamburger-bar--top { transform: translate(2px); }
+  .hamburger:not([data-state='open']):hover .hamburger-bar--bot { transform: translate(-2px); }
+
+  .menu {
+    position: fixed; inset: 0; z-index: var(--z-menu); isolation: isolate;
+    display: flex; flex-direction: column; overflow: hidden auto;
+    background: var(--color-ink-deep);
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transition: opacity 0.5s, visibility 0.5s;
+  }
+  .menu[data-open='true'] { opacity: 1; visibility: visible; pointer-events: auto; }
+  .menu__grain {
+    position: absolute; inset: 0; pointer-events: none;
+    background: url('/textures/pebble.webp') 0 0 / var(--pebble-tile) var(--pebble-tile);
+    mix-blend-mode: overlay; opacity: 0.35;
+  }
+  @media (min-width: 768px) { .menu__grain { position: fixed; } }
+  .menu__layout { position: relative; display: flex; flex: 1; flex-direction: column; padding: 6rem var(--gutter) 3rem; }
+  @media (min-width: 768px) {
+    .menu__layout { min-height: calc(var(--min-h) - 52px); padding: clamp(88px, calc(112 * var(--cu)), 112px) var(--gutter) clamp(32px, calc(64 * var(--cu)), 64px); }
+  }
+  .menu__links { position: relative; margin: auto; display: flex; flex-shrink: 0; flex-direction: column; align-items: center; row-gap: 0.625rem; }
+  .menu__row { display: flex; flex-direction: column; align-items: center; row-gap: 0.625rem; }
+  @media (min-width: 768px) {
+    .menu__links { row-gap: min(20px, calc(20 * var(--cu))); }
+    .menu__row { flex-direction: row; flex-wrap: wrap; justify-content: center; column-gap: min(56px, calc(56 * var(--cu))); row-gap: 0; }
+  }
+  .menu__link {
+    position: relative; font-size: clamp(60px, 16.4vw, 72px); line-height: 1.04; letter-spacing: -0.02em;
+    opacity: 0; transform: translateY(26px);
+    transition: transform 0.5s var(--ease-out), opacity 0.5s var(--ease-out);
+  }
+  @media (min-width: 768px) { .menu__link { font-size: clamp(48px, calc(7 * var(--vu)), 116px); } }
+  .menu[data-open='true'] .menu__link { opacity: 1; transform: none; transition-delay: calc(0.08s + 0.045s * var(--i)); }
+  .menu__label { color: color-mix(in oklab, var(--color-bone) 50%, transparent); }
+  .menu__label.is-current, .menu__fill { color: var(--color-bone); }
+  .menu__socials { margin-top: 2rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 1rem; opacity: 0; transition: opacity 0.5s; }
+  @media (min-width: 768px) { .menu__socials { margin-top: min(48px, calc(48 * var(--cu))); gap: 1.5rem; } }
+  .menu[data-open='true'] .menu__socials { opacity: 1; transition-delay: 0.42s; }
+  .menu__socials a { display: block; margin: -0.5rem; padding: 0.5rem; color: color-mix(in oklab, var(--color-bone) 60%, transparent); transition: color 0.3s; }
+  .menu__socials a:hover { color: var(--color-bone); }
+  .menu__social-icon { width: 2rem; height: 2rem; }
+  @media (min-width: 768px) { .menu__social-icon { width: min(56px, calc(56 * var(--cu))); height: min(56px, calc(56 * var(--cu))); } }
+  .menu__credits {
+    position: relative; display: grid; width: 100%; flex-shrink: 0; grid-template-columns: 1fr auto; align-items: center;
+    gap: 0.75rem 1rem; padding: 0 var(--gutter) 1.5rem; font-size: 0.75rem; line-height: 1.625;
+    color: color-mix(in oklab, var(--color-bone) 55%, transparent); opacity: 0; transition: opacity 0.5s;
+  }
+  .menu[data-open='true'] .menu__credits { opacity: 1; transition-delay: 0.5s; }
+  .menu__credits a { margin-block: -0.75rem; padding-block: 0.75rem; transition: opacity 0.3s, color 0.3s; }
+  .menu__credits a:hover { color: var(--color-bone); }
+  .menu__credits-a { display: contents; }
+  .menu__studio { order: 1; }
+  .menu__legal { order: 2; display: flex; align-items: center; justify-content: flex-end; gap: 1.25rem; }
+  .menu__copy { order: 3; }
+  .menu__credit { order: 4; text-align: right; }
+  @media (min-width: 768px) {
+    .menu__credits { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem 1.5rem; padding: 0 calc(var(--page-x) + 3rem) 2rem; }
+    .menu__credits-a { display: flex; align-items: center; gap: 1.25rem; }
+    .menu__studio, .menu__legal, .menu__copy, .menu__credit { order: 0; }
+    .menu__legal { position: absolute; left: 50%; translate: -50% 0; }
+  }
+  /* Phones & coarse tablets: links share the height left after header/socials/credits. */
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
+    .menu { height: 100dvh; overflow: hidden; background: var(--color-ink); }
+    .menu__grain { opacity: 0.16; }
+    .menu__layout { min-height: 0; padding-top: max(64px, 9dvh); padding-bottom: 12px; }
+    .menu__links, .menu__row { row-gap: 4px; }
+    .menu__row { flex-direction: column; }
+    .menu__link { font-size: clamp(30px, min(16vw, calc((100dvh - 220px - max(0px, env(safe-area-inset-bottom) - 12px)) / 7.28)), 72px); line-height: 1.04; }
+    .menu__socials { margin-top: 14px; gap: 20px; }
+    .menu__social-icon { width: 32px; height: 32px; }
+    .menu__credits { display: grid; font-size: 12px; gap: 8px 12px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+    .menu__credits-a { display: contents; }
+    .menu__legal { position: static; translate: none; order: 2; }
+    .menu__studio { order: 1; } .menu__copy { order: 3; } .menu__credit { order: 4; }
+  }
+  @media (max-height: 500px) and (orientation: landscape) and (max-width: 900px) {
+    .menu__layout { padding-top: 58px; padding-bottom: 8px; }
+    .menu__links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: min(100%, 680px); column-gap: 32px; }
+    .menu__link { font-size: clamp(26px, 7dvh, 36px); }
+    .menu__socials { grid-column: 1 / -1; margin-top: 8px; }
+  }
+</style>

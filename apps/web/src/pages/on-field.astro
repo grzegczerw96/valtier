@@ -1,0 +1,65 @@
+---
+import Base from '../layouts/Base.astro';
+import PageBase from '@valtier/ds/components/PageBase.astro';
+import HeroField from '../components/on-field/HeroField.astro';
+import QuoteCatch from '../components/on-field/QuoteCatch.astro';
+import StatsTimeline from '../components/on-field/StatsTimeline.astro';
+import TotalYards from '../components/on-field/TotalYards.astro';
+import CareerTable from '../components/on-field/CareerTable.astro';
+import RecordBooks from '../components/on-field/RecordBooks.astro';
+import Influence from '../components/on-field/Influence.astro';
+import CleatsMarquee from '../components/on-field/CleatsMarquee.astro';
+import SettingThePace from '../components/on-field/SettingThePace.astro';
+import { hero } from '../content/on-field';
+import { footerVariants } from '../site.config';
+---
+<Base
+  title="On-Field · Nico Valtier"
+  description="Seasons, records and numbers from Nico Valtier, wide receiver #18 of the Northmark Wolves."
+  theme="field"
+  footer={footerVariants.offField}
+  heroFont
+  preload={[
+    { href: hero.poster.src, as: 'image', type: 'image/webp', media: '(min-width: 768px)', fetchpriority: 'high' },
+    { href: hero.poster.phone, as: 'image', type: 'image/webp', media: '(max-width: 767px)', fetchpriority: 'high' },
+  ]}
+>
+  <PageBase base="#2D2D2D" texture="grass" />
+  <div class="of-hero" data-section="on-hero">
+    <HeroField />
+    <!-- The quote rides up over the closing hero band (desktop). -->
+    <div class="of-quote-pull" data-quote-pull><QuoteCatch /></div>
+    <div class="of-leak" aria-hidden="true"><div></div></div>
+    <div class="of-leak-touch" aria-hidden="true"></div>
+  </div>
+  <StatsTimeline />
+  <TotalYards />
+  <CareerTable />
+  <RecordBooks />
+  <Influence />
+  <div data-section="on-cleats"><CleatsMarquee /></div>
+  <SettingThePace />
+</Base>
+
+<style>
+  .of-hero { position: relative; overflow-x: clip; }
+  .of-quote-pull { position: relative; z-index: 20; margin-top: -82vh; }
+  /* Soft window-light leak washing over hero and quote. */
+  .of-leak {
+    pointer-events: none; position: absolute; z-index: 30; left: -20vw; top: -55vw; width: 250vw; aspect-ratio: 2549 / 2185;
+    filter: blur(clamp(48px, 16vw, 400px)); mix-blend-mode: soft-light;
+  }
+  .of-leak > div {
+    width: 100%; height: 100%; background: #fff;
+    clip-path: polygon(0% 10%, 18% 1.5%, 72% 0%, 100% 33.5%, 69.5% 19.8%, 71% 40%, 45% 28.6%, 57% 81%, 51% 100%, 0.5% 23.6%);
+  }
+  .of-leak-touch {
+    display: none; pointer-events: none; position: absolute; z-index: 30; left: -30vw; top: -40vw; width: 170vw; height: 140vw;
+    /* Reference uses soft-light at .22; blending a 170vw layer is costly on phones,
+       so a normal-blend lift of similar strength is used instead. */
+    background: radial-gradient(closest-side, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0) 72%);
+  }
+  @media (hover: none) { .of-leak { display: none; } .of-leak-touch { display: block; } }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) { .of-quote-pull { margin-top: 0; } }
+  @media (prefers-reduced-motion: reduce) { .of-quote-pull { margin-top: 0; } }
+</style>

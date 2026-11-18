@@ -1,0 +1,176 @@
+/* ==========================================================================
+   Valtier Design System — tokens
+   Every value here was measured from the reference build (computed styles,
+   stylesheet and runtime constants), then renamed into the system.
+   ========================================================================== */
+
+:root {
+  /* ---- Colour: brand palette ------------------------------------------ */
+  --color-ink: #0b0a0f;            /* page base (dark) */
+  --color-ink-deep: #171220;       /* panels, menu, wipe */
+  --color-ink-card: #141019;       /* ASCII card cell fill */
+  --color-bone: #f4efe6;           /* primary foreground */
+  --color-bone-warm: #f6f3ef;      /* hero / quote foreground, logo */
+  --color-sand: #d3c8ba;
+  --color-smoke: #1e1a2a;          /* reel card fill */
+  --color-purple-ink: #1a0e30;
+  --color-purple-deep: #2c1352;
+  --color-purple-rich: #4f2bab;
+  --color-purple-fog: #563b80;
+  --color-purple-shade: #251c34;
+  --color-purple-muted: #a9a1b5;
+  --color-purple-mid: #6c4aa2;     /* influence heading */
+  --color-lavender: #9e6de9;       /* accent text */
+  --color-gold: #d4a24a;
+  --color-gold-bright: #f2c766;
+  --color-cta-yellow: #eeac1a;
+  --color-taupe-light: #f0e4d4;
+  --color-taupe: #b0a89d;
+  --color-taupe-deep: #746c62;
+  --color-card: rgba(42, 39, 49, 0.78);
+  --color-card-photo: #3a2a47;
+
+  /* text opacity steps on dark */
+  --fg-100: #f4efe6;
+  --fg-85: rgba(244, 239, 230, 0.85);
+  --fg-55: rgba(244, 239, 230, 0.55);
+  --fg-45: rgba(244, 239, 230, 0.45);
+  --fg-muted: rgba(244, 239, 230, 0.52); /* lowest tone that still passes WCAG AA on ink */
+  --fg-40: rgba(244, 239, 230, 0.4);
+  --fg-38: rgba(244, 239, 230, 0.38);
+  --fg-18: rgba(244, 239, 230, 0.18);
+  --fg-14: rgba(244, 239, 230, 0.14);
+  --fg-06: rgba(244, 239, 230, 0.06);
+
+  /* ---- Typography ----------------------------------------------------- */
+  --font-display: "VDS Display", "VDS Display Fallback", "Arial Narrow", Arial, sans-serif;
+  --font-body: "VDS Body", "VDS Body Fallback", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "VDS Mono", "VDS Mono Fallback", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-hero: "VDS Hero", "VDS Hero Fallback", var(--font-display);
+
+  --fs-display-xl: clamp(56px, 12vw, 152px);
+  --fs-display-lg: clamp(44px, 8vw, 96px);
+  --fs-display-md: clamp(32px, 6vw, 72px);
+  --fs-display-sm: clamp(24px, 4vw, 48px);
+  --fs-heading-xl: clamp(64px, 14vw, 220px);
+  --fs-heading-lg: clamp(32px, 5vw, 56px);
+  --fs-heading-md: clamp(24px, 3.5vw, 36px);
+  --fs-heading-sm: clamp(18px, 2vw, 22px);
+  --fs-heading-xs: clamp(14px, 1.4vw, 16px);
+  --fs-body: clamp(15px, 1.05vw, 17px);
+  --fs-label: clamp(13px, 0.95vw, 15px);
+  --fs-label-sm: clamp(12px, 0.78vw, 13px);
+  --fs-quote: clamp(44px, 9vw, 176px);
+
+  /* ---- Motion --------------------------------------------------------- */
+  --ease-editorial: cubic-bezier(0.65, 0.05, 0.36, 1);
+  --ease-ui: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-cover: cubic-bezier(0.85, 0, 0.15, 1);
+  --ease-reveal: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-snap: cubic-bezier(0.2, 0, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 0.2s;
+  --dur-ui: 0.3s;
+  --dur-reveal: 0.55s;
+  --dur-theme: 1s;
+  --footer-fade: 0.8s;
+
+  /* ---- Radii / surfaces ----------------------------------------------- */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-reel: 18px;
+  --radius-glass: 19px;
+  --radius-pill: 9999px;
+
+  /* ---- Layout units ---------------------------------------------------
+     --vu  : "viewport unit" = 1/100 of the page width, capped by 1.8 x 1vh
+             so tall-and-narrow and short-and-wide screens keep proportions.
+     --pu  : phone unit.
+     --of-*: viewport heights with a floor (min-h) so nothing collapses on
+             very short windows. */
+  --min-h: 700px;
+  --min-h-phone: 640px;
+  --content-max: 1728px;
+  --page-w: min(100vw, var(--content-max));
+  --page-x: max(0px, calc((100vw - var(--content-max)) / 2));
+  --vu: min(calc(var(--page-w) / 100), calc(1.8 * max(1vh, var(--min-h) / 100)));
+  --vu-fit: min(calc(var(--page-w) / 100), 1.8vh);
+  --pu: min(1vw, calc(0.5 * max(1lvh, var(--min-h-phone) / 100)));
+  --cu: calc(var(--vu) / 14.4);
+  --of-vh: max(1vh, calc(var(--min-h) / 100));
+  --of-svh: max(1svh, calc(var(--min-h) / 100));
+  --of-lvh-p: max(1lvh, calc(var(--min-h-phone) / 100));
+  --gutter: 1.5rem;
+  --gutter-lg: 3rem;
+
+  /* ---- Textures ------------------------------------------------------- */
+  --pebble-tile: 480px;
+  --leather-tile: 560px;
+  --grass-tile: 170px;
+  --wipe-pane: 100vh;
+
+  /* ---- Elevation (z-index scale) -------------------------------------- */
+  --z-bg: -1;
+  --z-content: 1;
+  --z-sound: 40;
+  --z-cursor: 75;
+  --z-footer-fade: 75;
+  --z-footer-light: 76;
+  --z-footer: 80;
+  --z-menu: 85;
+  --z-nav: 90;
+  --z-modal: 100;
+  --z-veil: 150;
+  --z-transition: 9999;
+  --z-skip: 10001;
+
+  /* ---- Theme (switched per section through [data-theme]) -------------- */
+  --theme-bg: var(--color-ink);
+  --theme-fg: var(--color-bone);
+  --theme-accent: var(--color-gold);
+  --theme-surface: var(--color-smoke);
+  --logo-color: var(--color-bone-warm);
+  --hamburger-halo: drop-shadow(0 1px 5px #0b0a0f8c);
+
+  color-scheme: dark;
+}
+
+/* Phones and coarse tablets share one breakpoint, mirrored in JS (isPhone). */
+@media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
+  :root {
+    --pebble-tile: 340px;
+    --leather-tile: var(--pebble-tile);
+    --wipe-pane: 100lvh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --footer-fade: 0s; }
+}
+
+[data-theme="tone-dark"],
+[data-theme="field"] {
+  --theme-bg: var(--color-ink);
+  --theme-fg: var(--color-bone);
+  --theme-accent: var(--color-gold);
+  --theme-surface: var(--color-smoke);
+}
+
+[data-theme="tone-purple"] {
+  --theme-bg: var(--color-purple-deep);
+  --theme-fg: var(--color-bone);
+  --theme-accent: var(--color-gold-bright);
+  --theme-surface: var(--color-purple-shade);
+}
+
+[data-theme="tone-light"] {
+  --theme-bg: var(--color-sand);
+  --theme-fg: var(--color-ink-deep);
+  --theme-accent: var(--color-purple-rich);
+  --logo-color: var(--color-ink-deep);
+  --hamburger-halo: none;
+}

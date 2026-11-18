@@ -1,0 +1,160 @@
+---
+/** Frosted navigation card on the left of the desktop footer. Its outline is a
+ *  rounded rectangle with a stepped notch on the right edge (built in JS from
+ *  the live size so the radii stay crisp at any height). */
+import { withBase } from '../lib/base';
+import Logo from './Logo.astro';
+import SocialIcon, { PLATFORM_LABEL } from './SocialIcon.astro';
+import type { SiteSettings } from '../lib/types';
+interface Props { settings: SiteSettings; trophy?: { src: string; href: string; label: string } }
+const { settings, trophy } = Astro.props;
+const year = new Date().getFullYear();
+---
+<div class="fpanel" data-footer-panel>
+  <div class="fpanel__inner" data-footer-panel-inner>
+    <div class="fpanel__surface" aria-hidden="true"></div>
+    <div class="fpanel__content">
+      <a href={withBase("/")} aria-label="Home" class="fpanel__logo"><span aria-hidden="true"><Logo class="fpanel__logo-svg" /></span></a>
+      <nav aria-label="Footer" class="fpanel__nav">
+        {settings.navLinks.map((l) => (
+          <a href={l.href} class="menu-link heading fpanel__link">
+            <span class="menu-link-lift"><span>{l.label}</span><span class="menu-link-fill fpanel__fill" aria-hidden="true">{l.label}</span></span>
+          </a>
+        ))}
+      </nav>
+      <div>
+        <div class="fpanel__row">
+          {trophy && (
+            <div class="fpanel__float">
+              <a href={trophy.href} aria-label={trophy.label} class="fpanel__trophy" data-trophy>
+                <span class="fpanel__trophy-3d" data-trophy-3d>
+                  <img src={trophy.src} alt="" width="160" height="135" loading="lazy" decoding="async" />
+                  <span class="fpanel__sheen" aria-hidden="true" style={`-webkit-mask-image:url(${trophy.src});mask-image:url(${trophy.src})`}></span>
+                </span>
+              </a>
+            </div>
+          )}
+          <ul class="fpanel__socials">
+            {settings.socialLinks.map((s) => (
+              <li><a href={s.url} target="_blank" rel="noreferrer" aria-label={PLATFORM_LABEL[s.platform]}><SocialIcon platform={s.platform} class="fpanel__social-icon" /></a></li>
+            ))}
+          </ul>
+        </div>
+        <div class="fpanel__legal">
+          <div class="fpanel__legal-row">
+            <a href={settings.studioCredit.href} target="_blank" rel="noreferrer" data-scramble>{settings.studioCredit.label}</a>
+            <span class="fpanel__legal-links">{settings.legalLinks.map((l) => <a href={l.href} data-scramble>{l.label}</a>)}</span>
+          </div>
+          <div class="fpanel__legal-row">
+            <span>© {year} {settings.legalName}</span>
+            <a href={settings.footerCredit.href} target="_blank" rel="noreferrer" data-scramble>{settings.footerCredit.label}</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.vDefer(async () => {
+    const { initAllScrambles } = await import('../motion/scramble');
+    await window.vIdle();
+    const H = 378.192 / 745;
+    function outline(w: number, h: number) {
+      const r = w - 54.435, a = h * H, n = a - 41.008;
+      return [
+        'M 16 0', `L ${r - 16} 0`, `C ${r - 7.1632} 0 ${r} 7.1632 ${r} 16`, `L ${r} ${n}`,
+        `C ${r} ${n + 6.92} ${w - 49.987} ${n + 13.056} ${w - 43.41} ${n + 15.207}`, `L ${w - 11.025} ${n + 25.801}`,
+        `C ${w - 4.448} ${n + 27.952} ${w} ${n + 34.088} ${w} ${a}`, `L ${w} ${h - 16}`,
+        `C ${w} ${h - 7.1632} ${w - 7.1632} ${h} ${w - 16} ${h}`, `L 16 ${h}`, `C 7.1632 ${h} 0 ${h - 7.1632} 0 ${h - 16}`,
+        'L 0 16', 'C 0 7.1632 7.1632 0 16 0', 'Z',
+      ].join(' ');
+    }
+    document.querySelectorAll<HTMLElement>('[data-footer-panel-inner]').forEach((inner) => {
+      const surface = inner.querySelector<HTMLElement>('.fpanel__surface');
+      if (!surface) return;
+      const fit = () => {
+        const p = `path('${outline(inner.clientWidth, inner.clientHeight)}')`;
+        surface.style.clipPath = p;
+        surface.style.borderRadius = '0';
+      };
+      // ResizeObserver reports after layout, so the outline is built without forcing one.
+      new ResizeObserver(() => inner.clientWidth && fit()).observe(inner);
+      initAllScrambles(inner);
+      // 2.5D trophy: perspective tilt toward the pointer + a sheen sliding across
+      // (stand-in for the reference's depth-mapped WebGL cleat).
+      const t3 = inner.querySelector<HTMLElement>('[data-trophy-3d]');
+      if (t3 && matchMedia('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)').matches) {
+        const st = { x: 0, y: 0, tx: 0, ty: 0 };
+        let raf = 0, on = false;
+        addEventListener('pointermove', (e) => {
+          const r = t3.getBoundingClientRect();
+          st.tx = Math.max(-1, Math.min(1, (e.clientX - (r.left + r.width / 2)) / (innerWidth * 0.35)));
+          st.ty = Math.max(-1, Math.min(1, (e.clientY - (r.top + r.height / 2)) / (innerHeight * 0.35)));
+        }, { passive: true });
+        const tick = () => {
+          st.x += (st.tx - st.x) * 0.08; st.y += (st.ty - st.y) * 0.08;
+          t3.style.transform = `perspective(420px) rotateY(${(st.x * 22).toFixed(2)}deg) rotateX(${(-st.y * 14).toFixed(2)}deg)`;
+          t3.style.setProperty('--sheen', `${(50 + st.x * 60).toFixed(1)}%`);
+          raf = requestAnimationFrame(tick);
+        };
+        new IntersectionObserver(([e]) => {
+          if (e?.isIntersecting && !on) { on = true; raf = requestAnimationFrame(tick); }
+          else if (!e?.isIntersecting) { on = false; cancelAnimationFrame(raf); }
+        }).observe(t3);
+      }
+    });
+  });
+</script>
+
+<style is:global>
+  .fpanel { position: relative; z-index: 10; order: -1; margin: 0.75rem 0.75rem 0; width: min(100% - 24px, 420px); }
+  @media (min-width: 768px) {
+    .fpanel { position: absolute; top: 1rem; bottom: 1rem; left: calc(var(--page-x) + 16px); margin: 0; width: clamp(280px, calc(var(--page-w) * 0.215), 400px); }
+    [data-footer] .fpanel { height: calc(var(--footer-comp-h) - 32px); top: auto; }
+  }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) { .fpanel { display: none; } }
+  .fpanel__inner { position: relative; width: 100%; height: 100%; container-type: size; }
+  .fpanel__surface {
+    position: absolute; inset: 0; border-radius: 16px;
+    background: rgba(68, 59, 70, 0.4); filter: drop-shadow(0 22px 50px rgba(20, 14, 26, 0.2));
+    -webkit-backdrop-filter: blur(54px); backdrop-filter: blur(54px);
+  }
+  .fpanel__content {
+    position: relative; display: flex; height: 100%; flex-direction: column; justify-content: space-between;
+    gap: min(32px, 4.7cqh); padding: min(clamp(18px, 8.5cqw, 40px), 3.9cqh) clamp(18px, 8.5cqw, 40px);
+  }
+  .fpanel__logo { display: block; width: fit-content; }
+  .fpanel__logo > span { display: block; transform-origin: left; transition: transform 0.3s var(--ease-out); }
+  .fpanel__logo:hover > span { transform: scale(1.1); }
+  .fpanel__logo:active > span { transform: scale(1.05); }
+  .fpanel__logo-svg { height: min(clamp(40px, 13cqw, 56px), 5.9cqh); width: auto; color: rgba(240, 228, 212, 0.65); }
+  .fpanel__nav { display: flex; flex-direction: column; gap: 1rem; }
+  @media (min-width: 768px) { .fpanel__nav { gap: min(20px, 2.6cqh); } }
+  .fpanel__link {
+    display: block; width: fit-content; margin-block: -0.375rem; padding-block: 0.375rem; color: var(--color-taupe-light);
+    font-size: min(clamp(26px, calc(var(--page-w) * 0.0215), 36px), 4.4cqh); line-height: 1.05; letter-spacing: -0.01em;
+  }
+  .fpanel__fill { color: var(--color-cta-yellow); }
+  .fpanel__row { margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .fpanel__float { translate: -8% 0; animation: v-footer-float 4.4s ease-in-out infinite; }
+  @keyframes v-footer-float { 0%, to { transform: translateY(0) rotate(-1.6deg); } 50% { transform: translateY(-9px) rotate(1.8deg); } }
+  @media (prefers-reduced-motion: reduce) { .fpanel__float { animation: none; } }
+  .fpanel__trophy { position: relative; display: block; aspect-ratio: 1920 / 1621; width: min(27cqw, 11cqh); max-width: 8rem; transition: transform 0.3s var(--ease-out); }
+  .fpanel__trophy:hover { transform: scale(1.05); }
+  .fpanel__trophy-3d { position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d; will-change: transform; }
+  .fpanel__trophy img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 6px 10px rgba(10, 6, 16, 0.45)); }
+  .fpanel__sheen {
+    position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen;
+    -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center;
+    background: linear-gradient(105deg, transparent calc(var(--sheen, 50%) - 22%), rgba(255, 244, 210, 0.75) var(--sheen, 50%), transparent calc(var(--sheen, 50%) + 22%));
+  }
+  .fpanel__socials { margin-bottom: 0.25rem; display: flex; align-items: center; gap: clamp(10px, 4.5cqw, 20px); color: var(--color-taupe-light); }
+  .fpanel__socials a { display: block; margin: -0.5rem; padding: 0.5rem; opacity: 0.9; transition: opacity 0.3s; }
+  .fpanel__socials a:hover { opacity: 1; }
+  .fpanel__social-icon { width: clamp(18px, 7.5cqw, 32px); height: clamp(18px, 7.5cqw, 32px); }
+  .fpanel__legal { border-top: 1px solid color-mix(in oklab, var(--color-bone) 22%, transparent); padding-top: 1rem; display: flex; flex-direction: column; row-gap: 0.25rem; font-size: 0.75rem; line-height: 1.625; opacity: 0.7; }
+  .fpanel__legal-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: 1rem; }
+  .fpanel__legal a { display: inline-block; margin-block: -0.75rem; padding-block: 0.75rem; transition: opacity 0.3s; }
+  .fpanel__legal-links { display: flex; align-items: center; gap: 1rem; }
+</style>

@@ -1,0 +1,51 @@
+---
+/** Loader + transition veil. Covers the first paint only when html.veil-on is set
+ *  (arrival from an internal transition, or the optional first-visit loader);
+ *  motion/transitions.ts then fills the logo with load progress and wipes it away. */
+import Logo from './Logo.astro';
+---
+<div class="veil" data-veil aria-hidden="true">
+  <div class="wipe-panel"></div>
+  <div class="veil__mark" data-veil-mark>
+    <Logo class="veil__logo" fillable idSuffix="veil" label="Loading" />
+    <div class="veil__pct" data-veil-pct>0%</div>
+  </div>
+</div>
+
+<script>
+  window.vDefer(async () => {
+    const { initTransitions } = await import('../motion/transitions');
+    await window.vIdle();
+    const veil = document.querySelector<HTMLElement>('[data-veil]');
+    if (veil) initTransitions(veil);
+  });
+</script>
+
+<style is:global>
+  .veil {
+    position: fixed; inset: 0; z-index: var(--z-veil);
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+    pointer-events: none; --logo-fill: var(--color-bone-warm);
+    visibility: hidden; opacity: 0;
+  }
+  html.veil-on .veil { visibility: visible; opacity: 1; }
+  .veil[data-page-veil] { pointer-events: auto; }
+  html:not(.js) .veil, html.no-veil .veil { display: none; }
+  .wipe-panel { position: absolute; inset: 0; isolation: isolate; overflow: hidden; background: var(--color-ink-deep); }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
+    .wipe-panel {
+      --wipe-lead: 14.8lvh; --slab-w: calc(100vw + 2 * var(--wipe-lead));
+      top: -10%; bottom: -10%; right: auto; left: calc(-1 * var(--wipe-lead)); width: var(--slab-w);
+      transform: skew(-7deg); will-change: transform;
+    }
+  }
+  .veil__mark { position: relative; display: flex; flex-direction: column; align-items: center; }
+  .veil__logo { height: 7rem; width: auto; }
+  @media (min-width: 768px) { .veil__logo { height: 9rem; } }
+  .veil__pct {
+    position: absolute; left: 50%; top: 100%; margin-top: 1.25rem; translate: -50% 0; user-select: none;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.2em; padding-left: 0.2em;
+    font-variant-numeric: tabular-nums; color: var(--color-bone-warm); opacity: 0.5;
+  }
+  @media (min-width: 768px) { .veil__pct { font-size: 0.75rem; } }
+</style>

@@ -1,0 +1,88 @@
+/* Self-hosted OFL fonts (see assets/fonts/OFL-*.txt), subset to Latin + Polish.
+   Display = Saira pinned to wdth 50, Body = Hanken Grotesk, Mono = IBM Plex Mono,
+   Hero = Audiowide. Chosen by pixel-overlap matching against the reference faces.
+   Fallback faces carry measured metric overrides so swapping causes no reflow. */
+
+@font-face {
+  font-family: "VDS Display";
+  src: url("../assets/fonts/display.woff2") format("woff2");
+  font-weight: 400 800;
+  font-display: swap;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+0152-0153, U+2013-2014, U+2018-201E, U+2022, U+2026, U+20AC, U+2122, U+2190-2193, U+2212, U+00D7;
+}
+@font-face {
+  font-family: "VDS Display";
+  src: url("../assets/fonts/display-ext.woff2") format("woff2");
+  font-weight: 400 800;
+  font-display: swap;
+  unicode-range: U+0104-0107, U+0118-0119, U+0141-0144, U+015A-015B, U+0179-017C;
+}
+@font-face {
+  font-family: "VDS Body";
+  src: url("../assets/fonts/body.woff2") format("woff2");
+  font-weight: 400 800;
+  font-display: swap;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+0152-0153, U+2013-2014, U+2018-201E, U+2022, U+2026, U+20AC, U+2122, U+2190-2193, U+2212, U+00D7;
+}
+@font-face {
+  font-family: "VDS Body";
+  src: url("../assets/fonts/body-ext.woff2") format("woff2");
+  font-weight: 400 800;
+  font-display: swap;
+  unicode-range: U+0104-0107, U+0118-0119, U+0141-0144, U+015A-015B, U+0179-017C;
+}
+@font-face {
+  font-family: "VDS Mono";
+  src: url("../assets/fonts/mono.woff2") format("woff2");
+  font-weight: 400 500;
+  font-display: swap;
+  unicode-range: U+0020-007E, U+00A0-00FF, U+0152-0153, U+2013-2014, U+2018-201E, U+2022, U+2026, U+20AC, U+2122, U+2190-2193, U+2212, U+00D7;
+}
+@font-face {
+  font-family: "VDS Mono";
+  src: url("../assets/fonts/mono-ext.woff2") format("woff2");
+  font-weight: 400 500;
+  font-display: swap;
+  unicode-range: U+0104-0107, U+0118-0119, U+0141-0144, U+015A-015B, U+0179-017C;
+}
+@font-face {
+  font-family: "VDS Hero";
+  src: url("../assets/fonts/hero.woff2") format("woff2");
+  font-weight: 400;
+  /* Hero title only, preloaded (13 KB): render once in the final face instead of
+     swapping (a swap repaints the LCP text and re-lays out the title). */
+  font-display: block;
+}
+
+@font-face {
+  font-family: "VDS Display Fallback";
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Arial");
+  size-adjust: 54.26%;
+  ascent-override: 209.17%;
+  descent-override: 80.91%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "VDS Body Fallback";
+  src: local("Arial"), local("ArialMT");
+  size-adjust: 98.88%;
+  ascent-override: 101.13%;
+  descent-override: 30.64%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "VDS Mono Fallback";
+  src: local("Arial"), local("ArialMT");
+  size-adjust: 111.36%;
+  ascent-override: 92.05%;
+  descent-override: 24.7%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "VDS Hero Fallback";
+  src: local("Arial Black"), local("Arial");
+  size-adjust: 125.04%;
+  ascent-override: 79.16%;
+  descent-override: 22.81%;
+  line-gap-override: 0%;
+}

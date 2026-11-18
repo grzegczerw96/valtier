@@ -1,0 +1,28 @@
+---
+export type Platform = 'instagram' | 'tiktok' | 'x' | 'twitch';
+export const PLATFORM_LABEL: Record<Platform, string> = { instagram: 'Instagram', tiktok: 'TikTok', x: 'X', twitch: 'Twitch' };
+interface Props { platform: Platform; class?: string }
+const { platform, class: cls } = Astro.props;
+---
+{platform === 'instagram' && (
+  <svg viewBox="0 0 24 24" class={cls} aria-hidden="true" fill="none">
+    <rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="1.6" />
+    <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6" />
+    <circle cx="17.3" cy="6.7" r="1.1" fill="currentColor" />
+  </svg>
+)}
+{platform === 'tiktok' && (
+  <svg viewBox="0 0 24 24" class={cls} aria-hidden="true" fill="currentColor">
+    <path d="M16.5 3c.31 2.12 1.5 3.52 3.5 3.81v2.74c-1.2.1-2.41-.2-3.5-.83v5.9c0 3.4-2.62 5.89-5.9 5.4-2.6-.39-4.39-2.62-4.3-5.22.1-2.71 2.42-4.8 5.13-4.6.27.02.53.06.78.13v2.94a2.35 2.35 0 0 0-.93-.22 2.16 2.16 0 1 0 2.32 2.15V3h2.9Z" />
+  </svg>
+)}
+{platform === 'x' && (
+  <svg viewBox="0 0 24 24" class={cls} aria-hidden="true" fill="currentColor">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.656l-5.214-6.817-5.966 6.817H1.683l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z" />
+  </svg>
+)}
+{platform === 'twitch' && (
+  <svg viewBox="0 0 24 24" class={cls} aria-hidden="true" fill="currentColor">
+    <path d="M4.3 3 3 6.2v12.3h4.2V21h2.4l2.3-2.5h3.5L21 13.9V3H4.3Zm14.8 10.3-2.4 2.4h-3.5l-2.3 2.3v-2.3H7.6V4.6h11.5v8.7ZM15.5 7.3h-1.6v4.8h1.6V7.3Zm-4.3 0H9.6v4.8h1.6V7.3Z" />
+  </svg>
+)}

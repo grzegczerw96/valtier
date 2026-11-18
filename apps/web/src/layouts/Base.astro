@@ -1,0 +1,66 @@
+---
+import '@valtier/ds/tokens.css';
+import '@valtier/ds/styles/fonts.css';
+import '@valtier/ds/styles/base.css';
+import BgLayers from '@valtier/ds/components/BgLayers.astro';
+import SiteNav from '@valtier/ds/components/SiteNav.astro';
+import Footer from '@valtier/ds/components/Footer.astro';
+import SoundToggle from '@valtier/ds/components/SoundToggle.astro';
+import Cursor from '@valtier/ds/components/Cursor.astro';
+import Veil from '@valtier/ds/components/Veil.astro';
+import Boot from '@valtier/ds/components/Boot.astro';
+import displayFont from '@valtier/ds/assets/fonts/display.woff2?url';
+import bodyFont from '@valtier/ds/assets/fonts/body.woff2?url';
+import heroFont from '@valtier/ds/assets/fonts/hero.woff2?url';
+import { VEIL_BOOT } from '@valtier/ds/motion/veil';
+import { site, footerVariants, trophy, features } from '../site.config';
+import type { FooterCta } from '@valtier/ds/lib/types';
+import { withBase } from '@valtier/ds/lib/base';
+
+interface Props {
+  title: string;
+  description: string;
+  theme?: string;
+  footer?: FooterCta | null;
+  preload?: { href: string; as: string; type?: string; media?: string; fetchpriority?: string }[];
+  heroFont?: boolean;
+}
+const { title, description, theme = 'tone-dark', footer = footerVariants.offField, preload = [], heroFont: needHero = false } = Astro.props;
+const path = Astro.url.pathname.replace(/\.html$/, '').replace(/\/$/, '') || '/';
+const canonical = new URL(path, Astro.site ?? 'https://example.com').href;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta name="theme-color" content="#0b0a0f" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href={withBase("/favicon.svg")} type="image/svg+xml" />
+    <script is:inline set:html={VEIL_BOOT(features.firstVisitLoader)}></script>
+    <link rel="preload" href={displayFont} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={bodyFont} as="font" type="font/woff2" crossorigin />
+    {needHero && <link rel="preload" href={heroFont} as="font" type="font/woff2" crossorigin />}
+    {preload.map((p) => <link rel="preload" {...p} />)}
+  </head>
+  <body data-theme={theme}>
+    <BgLayers />
+    <a class="skip-link" href="#main">Skip to content</a>
+    <SiteNav settings={site} current={path} />
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    {footer && <Footer settings={site} variant={footer} trophy={trophy} />}
+    <SoundToggle />
+    <Cursor />
+    <Veil />
+    <Boot fallbackTheme={theme} />
+  </body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "valtier-site",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "dev": "npm run dev -w @valtier/web",
+    "build": "npm run build -w @valtier/web",
+    "preview": "npm run preview -w @valtier/web"
+  }
+}

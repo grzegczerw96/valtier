@@ -1,0 +1,41 @@
+---
+import DotReveal from '@valtier/ds/components/DotReveal.astro';
+import { quote } from '../../content/on-field';
+const label = quote.map((l) => l.map((s) => s.t).join('')).join(' ');
+---
+<section class="quote" data-tone="dark" aria-label={label} data-quote>
+  <blockquote class="display quote__text">
+    {quote.map((line, i) => (
+      <DotReveal startAt={0.95} delay={0.14 * i} data-line={i}>
+        {line.map((s) => (s.accent ? <span class="quote__accent">{s.t}</span> : s.t))}
+      </DotReveal>
+    ))}
+  </blockquote>
+</section>
+
+<script>
+  window.vDefer(async () => {
+    const { initDotReveal } = await import('@valtier/ds/motion/dot-reveal');
+    const { isPhone } = await import('@valtier/ds/motion/env');
+    await window.vIdle();
+    window.vDefer(() =>
+      document.querySelectorAll<HTMLElement>('[data-quote] [data-dot-reveal]').forEach((el, i) => {
+        if (isPhone()) el.dataset.delay = String(0.2 * i);
+        initDotReveal(el);
+      }),
+    );
+  });
+</script>
+
+<style>
+  .quote { position: relative; display: flex; align-items: center; min-height: calc(50 * var(--of-lvh-p)); overflow-x: clip; }
+  .quote__text {
+    position: relative; z-index: 10; margin-inline: auto; padding-inline: 1rem; text-align: center;
+    font-size: var(--quote-fs, 14vw); line-height: 0.98; color: var(--color-bone-warm);
+  }
+  .quote__accent { color: var(--color-lavender); }
+  @media (min-width: 768px) {
+    .quote { display: block; min-height: min(calc(110 * var(--of-vh)), calc(0.6875 * var(--page-w))); }
+    .quote__text { padding-top: calc(18 * var(--of-vh)); --quote-fs: clamp(44px, calc(9 * var(--vu)), 176px); }
+  }
+</style>

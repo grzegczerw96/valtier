@@ -1,0 +1,126 @@
+---
+/** Living style guide for @valtier/ds. Not indexed. */
+import Base from '../layouts/Base.astro';
+import Button from '@valtier/ds/components/Button.astro';
+import DotReveal from '@valtier/ds/components/DotReveal.astro';
+import Logo from '@valtier/ds/components/Logo.astro';
+import SocialIcon from '@valtier/ds/components/SocialIcon.astro';
+import Signature from '@valtier/ds/components/Signature.astro';
+import PartnerMarquee from '@valtier/ds/components/PartnerMarquee.astro';
+import { site } from '../site.config';
+
+const colors = [
+  ['ink', '#0b0a0f'], ['ink-deep', '#171220'], ['smoke', '#1e1a2a'], ['bone', '#f4efe6'], ['bone-warm', '#f6f3ef'], ['sand', '#d3c8ba'],
+  ['purple-ink', '#1a0e30'], ['purple-deep', '#2c1352'], ['purple-rich', '#4f2bab'], ['purple-fog', '#563b80'], ['purple-mid', '#6c4aa2'], ['lavender', '#9e6de9'],
+  ['gold', '#d4a24a'], ['gold-bright', '#f2c766'], ['cta-yellow', '#eeac1a'], ['taupe-light', '#f0e4d4'], ['taupe', '#b0a89d'], ['taupe-deep', '#746c62'],
+];
+const eases = [
+  ['editorial', 'cubic-bezier(.65,.05,.36,1)', 'theme colour, hamburger morph, slab wipes'],
+  ['ui', 'cubic-bezier(.4,0,.2,1)', 'buttons, generic UI'],
+  ['cover', 'cubic-bezier(.85,0,.15,1)', 'full-screen covers'],
+  ['reveal', 'cubic-bezier(.16,1,.3,1)', 'menu links, cursor, active cards'],
+  ['spring', 'cubic-bezier(.34,1.56,.64,1)', 'CTA label overshoot'],
+];
+const type = [
+  ['.display', 'Display — Saira wdth 50 / 700, uppercase, lh .83', 'display display-md', 'Record books'],
+  ['.numeric', 'Numeric — tabular figures', 'numeric display-md', '9,034'],
+  ['.heading', 'Heading — Hanken Grotesk 800', 'heading heading-md', 'Fastest Youngest First'],
+  ['body', 'Body — Hanken Grotesk 400, clamp(15px,1.05vw,17px)', '', 'The quick brown fox jumps over the lazy dog.'],
+  ['.label', 'Label — IBM Plex Mono 500, +.12em', 'label', 'Total yards today'],
+  ['.label-sm', 'Label small — +.16em', 'label-sm', 'Since 2019'],
+  ['hero', 'Hero — Audiowide', 'hero-sample', 'On-Field'],
+];
+---
+<Base title="Design System · Valtier" description="Tokens, type, motion and components of the Valtier design system." footer={null}>
+  <div class="ds" data-tone="dark">
+    <header class="ds__head">
+      <p class="label ds__muted">@valtier/ds · v0.1</p>
+      <h1 class="display ds__h1"><DotReveal waitForVeil>Design System</DotReveal></h1>
+      <p class="ds__lead">Tokens and components extracted from the On-Field page. Every number on this page is a CSS custom property or a component prop in <code>packages/ds</code>.</p>
+    </header>
+
+    <section class="ds__sec">
+      <h2 class="heading heading-md">Colour</h2>
+      <div class="ds__swatches">
+        {colors.map(([n, v]) => (
+          <div class="ds__swatch"><span style={`background:var(--color-${n})`}></span><b>--color-{n}</b><code>{v}</code></div>
+        ))}
+      </div>
+    </section>
+
+    <section class="ds__sec">
+      <h2 class="heading heading-md">Type</h2>
+      {type.map(([k, d, cls, sample]) => (
+        <div class="ds__type"><p class="label-sm ds__muted">{k} — {d}</p><p class={cls}>{sample}</p></div>
+      ))}
+    </section>
+
+    <section class="ds__sec">
+      <h2 class="heading heading-md">Motion</h2>
+      <div class="ds__eases">
+        {eases.map(([n, v, use]) => (
+          <div class="ds__ease"><span class="ds__dot" style={`--e:${v}`}></span><b>--ease-{n}</b><code>{v}</code><span class="ds__muted">{use}</span></div>
+        ))}
+      </div>
+      <p class="ds__muted ds__note">Scroll: Lenis lerp .16, wheel ×.72, touch ×1.5 (desktop only). Page wipe: in .45s / out .7s, power2.inOut, 18% slant. DotReveal: dots 0→.68, wipe .74→.98, 1.25s (≥64px) / .9s.</p>
+      <h3 class="display ds__demo"><DotReveal>Dot reveal on scroll</DotReveal></h3>
+    </section>
+
+    <section class="ds__sec">
+      <h2 class="heading heading-md">Components</h2>
+      <div class="ds__row">
+        <Button variant="cta" size="lg">Off-Field</Button>
+        <Button variant="light" size="md">Light</Button>
+        <Button variant="dark" size="md">Dark</Button>
+        <Button variant="secondary" size="sm">Secondary</Button>
+        <Button variant="gold" size="sm">Gold</Button>
+      </div>
+      <div class="ds__row">
+        <Logo class="ds__logo" />
+        <div class="ds__icons">{site.socialLinks.map((s) => <SocialIcon platform={s.platform} class="ds__icon" />)}</div>
+        <Signature class="ds__sig" />
+        <button type="button" class="label-sm ds__btn" data-sig-toggle>Toggle signature</button>
+      </div>
+      <div class="ds__marquee"><PartnerMarquee partners={site.partners} /></div>
+    </section>
+  </div>
+</Base>
+
+<script>
+  window.vDefer(async () => {
+    const { initAllDotReveals } = await import('@valtier/ds/motion/dot-reveal');
+    await window.vIdle();
+    initAllDotReveals(document.querySelector('.ds') ?? document);
+    const sig = document.querySelector<HTMLElement>('.ds__sig');
+    document.querySelector('[data-sig-toggle]')?.addEventListener('click', () => sig && (sig.dataset.active = String(sig.dataset.active !== 'true')));
+  });
+</script>
+
+<style>
+  .ds { max-width: 1240px; margin: 0 auto; padding: 8rem var(--gutter) 6rem; }
+  .ds__muted { color: var(--fg-muted); }
+  .ds__h1 { font-size: var(--fs-display-xl); margin: 1rem 0; color: var(--color-bone); }
+  .ds__lead { max-width: 42rem; color: var(--fg-85); }
+  .ds code { font-family: var(--font-mono); font-size: 0.8em; color: var(--color-lavender); }
+  .ds__sec { margin-top: 5rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+  .ds__swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; }
+  .ds__swatch { display: grid; gap: 0.25rem; font-size: 0.8rem; }
+  .ds__swatch span { height: 64px; border-radius: var(--radius-lg); border: 1px solid var(--fg-14); }
+  .ds__type { display: grid; gap: 0.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--fg-14); }
+  .hero-sample { font-family: var(--font-hero); font-size: var(--fs-display-md); text-transform: uppercase; line-height: 0.8; }
+  .ds__eases { display: grid; gap: 0.75rem; }
+  .ds__ease { display: grid; grid-template-columns: 220px 120px 260px 1fr; align-items: center; gap: 1rem; font-size: 0.85rem; position: relative; }
+  .ds__ease:hover .ds__dot { transform: translateX(200px); }
+  .ds__dot { width: 14px; height: 14px; border-radius: 50%; background: var(--color-lavender); transition: transform 1s var(--e); position: absolute; left: 160px; }
+  .ds__note { font-size: 0.9rem; }
+  .ds__demo { font-size: var(--fs-display-lg); color: var(--color-bone); margin-top: 3rem; }
+  .ds__row { display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; }
+  .ds__row :global(.ds__logo) { height: 56px; width: auto; color: var(--color-bone-warm); }
+  .ds__icons { display: flex; gap: 1rem; color: var(--color-gold); }
+  .ds__icons :global(svg) { width: 32px; height: 32px; }
+  .ds__row :global(.ds__sig) { width: 240px; height: 108px; }
+  .ds__btn { padding: 0.5rem 1rem; border: 1px solid var(--fg-18); border-radius: var(--radius-pill); }
+  .ds__marquee { height: 96px; display: flex; align-items: center; overflow: hidden; }
+  .ds__marquee :global(.partners) { width: 100%; height: 100%; }
+  @media (max-width: 767px) { .ds__ease { grid-template-columns: 1fr; } .ds__dot { display: none; } }
+</style>

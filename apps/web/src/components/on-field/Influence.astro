@@ -1,0 +1,91 @@
+---
+import { influence } from '../../content/on-field';
+---
+<section class="inf" data-section="on-influence" data-tone="dark" aria-label={`${influence.top} ${influence.word}`} data-influence>
+  <h2 class="display inf__title">
+    <span class="inf__top">{influence.top}</span>{' '}
+    <span class="inf__word">{influence.word}</span>
+  </h2>
+  <div class="inf__field" aria-hidden="true">
+    <img data-fade src={influence.field.src} alt="" width={influence.field.width} height={influence.field.height} loading="lazy" decoding="async"
+      sizes="(max-width: 767px) 200vw, 100vw" />
+    <div class="inf__fade"></div>
+  </div>
+  <div class="inf__player" data-inf-player>
+    <div class="inf__follow" data-inf-follow>
+      <div class="inf__float" data-inf-float>
+        <img src={influence.cutout.src} alt={influence.cutout.alt} width={influence.cutout.width} height={influence.cutout.height} loading="lazy" decoding="async" />
+      </div>
+    </div>
+  </div>
+  <div class="inf__grass" aria-hidden="true"><div></div></div>
+</section>
+
+<script>
+  window.vDefer(async () => {
+    const { gsap } = await import('@valtier/ds/motion/gsap');
+    const { isPhone, prefersReducedMotion } = await import('@valtier/ds/motion/env');
+    const { whenNear } = await import('@valtier/ds/motion/inview');
+    await window.vIdle();
+    const section = document.querySelector<HTMLElement>('[data-influence]');
+    if (section && !prefersReducedMotion()) whenNear(section, () => window.vDefer(() => init(section)));
+    function init(root: HTMLElement) {
+      const player = root.querySelector<HTMLElement>('[data-inf-player]')!;
+      const follow = root.querySelector<HTMLElement>('[data-inf-follow]')!;
+      const float = root.querySelector<HTMLElement>('[data-inf-float]')!;
+      const phone = isPhone();
+      if (!phone) {
+        const qx = gsap.quickTo(follow, 'x', { duration: 0.9, ease: 'power2.out' });
+        addEventListener('mousemove', (e) => qx((e.clientX / innerWidth - 0.5) * 18), { passive: true });
+        gsap.fromTo(player, { yPercent: 9, x: 92 }, { yPercent: -9, x: -92, ease: 'none', scrollTrigger: { trigger: root, start: 'top bottom', end: 'bottom top', scrub: 0.3 } });
+      }
+      const bob = gsap.to(float, { y: -16, rotate: 1.2, duration: 2.8, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+      new IntersectionObserver(([e]) => (e?.isIntersecting ? bob.resume() : bob.pause()), { rootMargin: '10% 0px' }).observe(root);
+    }
+  });
+</script>
+
+<style>
+  .inf { position: relative; display: flex; align-items: flex-start; justify-content: center; overflow: hidden; height: 169vw; }
+  .inf__title {
+    position: absolute; inset-inline: 0; z-index: -1; padding-inline: 0.5rem; text-align: center;
+    bottom: var(--inf-bottom, 110.25vw);
+    color: var(--inf-color, color-mix(in oklab, var(--color-lavender) 60%, var(--color-bone)));
+    opacity: var(--inf-opacity, 1);
+    -webkit-mask-image: linear-gradient(to bottom, black 42%, rgba(0, 0, 0, 0) 96%); mask-image: linear-gradient(to bottom, black 42%, rgba(0, 0, 0, 0) 96%);
+  }
+  .inf__top { display: block; white-space: nowrap; font-size: var(--inf-top-fs, 23vw); line-height: 0.85; }
+  .inf__word { display: block; white-space: nowrap; font-size: var(--inf-word-fs, 40vw); line-height: 0.78; }
+  .inf__field {
+    position: absolute; inset-inline: 0; bottom: 0; z-index: 10; height: 130vw; overflow: hidden;
+    -webkit-mask-image: var(--inf-fmask, linear-gradient(to top, transparent 0%, black 14%, black 62%, transparent 100%));
+    mask-image: var(--inf-fmask, linear-gradient(to top, transparent 0%, black 14%, black 62%, transparent 100%));
+  }
+  .inf__field img { position: absolute; bottom: 0; left: -50vw; width: 200vw; max-width: none; height: auto; }
+  .inf__fade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to bottom, var(--color-ink) 0%, var(--color-ink) 32%, transparent 62%); }
+  .inf__player { position: absolute; bottom: 22vw; left: 14vw; z-index: 20; width: 72vw; }
+  .inf__follow, .inf__float { will-change: transform; }
+  .inf__player img { width: 100%; height: auto; }
+  .inf__grass {
+    pointer-events: none; position: absolute; inset: 0; z-index: 15; mix-blend-mode: multiply; opacity: 0.75; clip-path: inset(0);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 85%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 85%, transparent 100%);
+  }
+  .inf__grass > div { position: fixed; inset: 0; background: url('/textures/grass.webp') 0 0 / var(--grass-tile); }
+  @media (hover: none) { .inf__grass { display: none; } .inf__follow { will-change: auto; } }
+
+  @media (min-width: 768px) {
+    .inf {
+      height: auto; align-items: center;
+      min-height: max(min(calc(165 * var(--of-vh)), calc(2.0625 * var(--page-w) - 165 * var(--of-vh))), calc(0.314417 * var(--page-w) + 60.17 * var(--vu)), calc(var(--page-w) * 1078 / 1440));
+    }
+    .inf__title {
+      z-index: 12; --inf-bottom: calc(var(--page-w) * 1078 / 1440 * 0.42); --inf-color: var(--color-purple-mid); --inf-opacity: 0.78;
+      --inf-top-fs: clamp(64px, calc(19 * var(--vu)), 380px); --inf-word-fs: clamp(110px, calc(34 * var(--vu)), 700px);
+    }
+    .inf__field { height: calc(var(--page-w) * 1078 / 1440); --inf-fmask: linear-gradient(to top, transparent 0%, black 22%, black 62%, transparent 100%); }
+    .inf__field img { position: static; width: 100%; height: 100%; object-fit: cover; }
+    .inf__fade { display: none; }
+    .inf__player { position: relative; bottom: auto; left: auto; margin-top: min(calc(14 * var(--of-vh)), calc(0.0875 * var(--page-w))); width: clamp(200px, calc(32 * var(--vu)), 660px); will-change: transform; }
+  }
+</style>

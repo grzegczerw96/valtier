@@ -1,0 +1,32 @@
+---
+/** Per-page fixed backdrop (sits above the global bg-layers): a base colour that
+ *  deepens to ink as the footer arrives (--fdp), a multiplied texture that fades
+ *  out, and the footer leather that fades in. On-Field uses #2D2D2D + turf grain. */
+import { withBase } from '../lib/base';
+interface Props { base?: string; texture?: 'grass' | 'pebble'; tile?: string }
+const { base = '#2D2D2D', texture = 'grass', tile } = Astro.props;
+const url = withBase(texture === 'grass' ? '/textures/grass.webp' : '/textures/pebble.webp');
+const size = tile ?? (texture === 'grass' ? 'var(--grass-tile)' : 'var(--pebble-tile)');
+---
+<div class="page-base" aria-hidden="true" style={`--page-base:${base}`}></div>
+<div class="page-tone-texture" aria-hidden="true" style={`background-image:url(${url});background-size:${size}`}></div>
+<div class="page-footer-leather" aria-hidden="true"></div>
+
+<style is:global>
+  .page-base, .page-tone-texture, .page-footer-leather { position: fixed; inset: 0; pointer-events: none; }
+  .page-base {
+    z-index: -1;
+    background-color: var(--page-base);
+    background-color: color-mix(in oklab, var(--page-base), var(--color-ink-deep) calc(var(--fdp, 0) * 100%));
+    transition: background-color var(--footer-fade) var(--ease-editorial);
+  }
+  .page-tone-texture { z-index: 0; mix-blend-mode: multiply; opacity: calc(1 - var(--fdp, 0)); transition: opacity var(--footer-fade) var(--ease-editorial); }
+  .page-footer-leather {
+    z-index: 0; mix-blend-mode: overlay; opacity: var(--fdp, 0); transition: opacity var(--footer-fade) var(--ease-editorial);
+    background-size: var(--leather-tile) var(--leather-tile);
+  }
+  html[data-footer-prepared] .page-footer-leather { background-image: url('/textures/pebble.webp'); }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
+    .page-base, .page-tone-texture, .page-footer-leather { top: -10%; bottom: -10%; }
+  }
+</style>

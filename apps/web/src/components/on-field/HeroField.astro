@@ -1,0 +1,296 @@
+---
+import fs from 'node:fs';
+import path from 'node:path';
+import DotReveal from '@valtier/ds/components/DotReveal.astro';
+import { stripBase } from '@valtier/ds/lib/base';
+import { hero, badge } from '../../content/on-field';
+// Only wire up clips that actually exist in /public, so a missing file never 404s.
+const exists = (p: string) => fs.existsSync(path.join(process.cwd(), 'public', stripBase(p)));
+const videoDesk = exists(hero.video.desktop) ? hero.video.desktop : undefined;
+const videoPhone = exists(hero.video.phone) ? hero.video.phone : videoDesk;
+---
+<div class="hero" data-hero>
+  <section class="hero__pane" data-tone="dark" data-on-hero-pane aria-label={hero.title}>
+    <svg class="hero__defs" width="0" height="0" aria-hidden="true">
+      <defs>
+        <filter id="crt-rgb" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+          <feFlood flood-color="#808080" result="dneutral" />
+          <feImage data-crt-band x="-5%" y="-400" width="110%" height="180" preserveAspectRatio="none" result="dband" />
+          <feComposite in="dband" in2="dneutral" operator="over" result="dmap" />
+          <feDisplacementMap in="SourceGraphic" in2="dmap" scale="30" xChannelSelector="R" yChannelSelector="B" result="warped" />
+          <feColorMatrix in="warped" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r" />
+          <feColorMatrix in="warped" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g" />
+          <feColorMatrix in="warped" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b" />
+          <feOffset data-crt-r in="r" dx="0" dy="0" result="ro" />
+          <feOffset data-crt-b in="b" dx="0" dy="0" result="bo" />
+          <feBlend in="ro" in2="g" mode="screen" result="rg" />
+          <feBlend in="rg" in2="bo" mode="screen" />
+        </filter>
+      </defs>
+    </svg>
+    <div class="hero__mask" data-hero-mask aria-hidden="true">
+      <div class="hero__screen" data-hero-screen>
+        <div class="hero__tilt" data-hero-tilt>
+          <div class="hero__breathe" data-hero-breathe>
+            <picture>
+              <source media="(max-width: 767px)" srcset={hero.poster.phone} />
+              <img class="hero__poster" src={hero.poster.src} alt="" width={hero.poster.width} height={hero.poster.height} fetchpriority="high" decoding="async" />
+            </picture>
+            <video class="hero__video" data-hero-video muted loop playsinline disableremoteplayback preload="none"
+              data-src={videoDesk} data-src-phone={videoPhone}></video>
+          </div>
+        </div>
+        <div class="hero__fx hero__scan"></div>
+        <div class="hero__fx hero__subpx"></div>
+        <div class="hero__fx hero__noise" data-hero-noise></div>
+        <div class="hero__fx hero__vignette"></div>
+        <div class="hero__fx hero__corners"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="hero__chrome" data-on-hero-chrome>
+    <div class="hero__chrome-inner">
+      <h1 class="hero__title" aria-label={hero.title}>
+        <DotReveal waitForVeil delay={0.15}>{hero.lines[0]}</DotReveal>
+        <DotReveal waitForVeil delay={0.32}>{hero.lines[1]}</DotReveal>
+      </h1>
+      <div class="hero__mark" data-hero-mark>
+        <img class="hero__crest" src={badge.src} alt={badge.alt} width={badge.width} height={badge.height} />
+        <span class="hero__num numeric" aria-label={`Number ${hero.number}`}>{hero.number}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Desktop: start the CRT intro at once. Phones: after first paint (CPU-bound).
+  const phoneNow = matchMedia('(max-width: 767px), (max-width: 900px) and (pointer: coarse)').matches;
+  (phoneNow ? window.vDefer : (fn: () => unknown) => fn())(async () => {
+    const { gsap, ScrollTrigger } = await import('@valtier/ds/motion/gsap');
+    const { isPhone, prefersReducedMotion, hasFinePointer } = await import('@valtier/ds/motion/env');
+    const { afterVeil } = await import('@valtier/ds/motion/veil');
+    const { initAllDotReveals } = await import('@valtier/ds/motion/dot-reveal');
+
+    const root = document.querySelector<HTMLElement>('[data-hero]');
+    if (root) {
+      initAllDotReveals(root);
+      const mask = root.querySelector<HTMLElement>('[data-hero-mask]')!;
+      const screen = root.querySelector<HTMLElement>('[data-hero-screen]')!;
+      const tilt = root.querySelector<HTMLElement>('[data-hero-tilt]')!;
+      const breathe = root.querySelector<HTMLElement>('[data-hero-breathe]')!;
+      const noise = root.querySelector<HTMLElement>('[data-hero-noise]');
+      const video = root.querySelector<HTMLVideoElement>('[data-hero-video]')!;
+      const band = root.querySelector<SVGFEImageElement>('[data-crt-band]');
+      const offR = root.querySelector<SVGFEOffsetElement>('[data-crt-r]');
+      const offB = root.querySelector<SVGFEOffsetElement>('[data-crt-b]');
+      const reduced = prefersReducedMotion();
+      const fine = hasFinePointer();
+      const phone = isPhone();
+      const marks = root.querySelectorAll('[data-hero-mark]');
+
+      // Video: attach only after the page has loaded (keeps the poster as the LCP
+      // and bandwidth free for first paint), then fade it in over the poster.
+      const startVideo = () => {
+        const src = (phone && video.dataset.srcPhone) || video.dataset.src;
+        if (!src) return;
+        video.src = src;
+        video.muted = true;
+        video.defaultMuted = true;
+        video.addEventListener('playing', () => video.classList.add('is-playing'), { once: true });
+        video.play().catch(() => {});
+      };
+      // The poster is the clip's first frame, so the swap is invisible. The clip is
+      // fetched on the visitor's first interaction (pointer, touch, scroll, key):
+      // no video bytes compete with first paint, and phones that never interact
+      // never download it.
+      const EVENTS = ['pointermove', 'pointerdown', 'touchstart', 'wheel', 'scroll', 'keydown'] as const;
+      let started = false;
+      const kick = () => {
+        if (started) return;
+        started = true;
+        EVENTS.forEach((ev) => removeEventListener(ev, kick));
+        startVideo();
+      };
+      EVENTS.forEach((ev) => addEventListener(ev, kick, { passive: true, once: true }));
+
+      if (phone || reduced) {
+        const g = 'linear-gradient(to bottom, #000 55%, transparent 100%)';
+        mask.style.maskImage = g;
+        (mask.style as any).webkitMaskImage = g;
+      }
+
+      const h = { intro: 0, p: 0 };
+      const apply = () => {
+        const e = Math.max(0.006, h.intro);
+        const t = Math.min(h.p / 0.75, 1);
+        const a = Math.max(0, (h.p - 0.75) / 0.25);
+        const ny = 49.6 * Math.pow(t, 1.35);
+        const nx = 50 * Math.pow(a, 1.3);
+        screen.style.transform = `scaleY(${e})`;
+        screen.style.clipPath = `inset(${ny.toFixed(2)}% ${nx.toFixed(2)}% ${ny.toFixed(2)}% ${nx.toFixed(2)}%)`;
+        if (fine) screen.style.filter = `brightness(${((1 + (1 - e) * 1.9) * (1 + 1.6 * t)).toFixed(3)})`;
+        screen.style.opacity = (1 - a * a).toFixed(3);
+      };
+
+      if (reduced) {
+        h.intro = 1;
+        apply();
+        screen.style.filter = 'none';
+        gsap.set(marks, { autoAlpha: 1, y: 0 });
+      } else {
+        apply();
+        const st = phone ? null : ScrollTrigger.create({ trigger: root, start: 'top top', end: 'bottom bottom', onUpdate: (s) => { h.p = s.progress; apply(); } });
+        h.p = st?.progress ?? 0;
+        apply();
+
+        // Rolling displacement band: a 4x64 sine strip stretched across the screen.
+        if (band) {
+          const c = document.createElement('canvas');
+          c.width = 4;
+          c.height = 64;
+          const x = c.getContext('2d');
+          if (x) {
+            const img = x.createImageData(4, 64);
+            for (let r = 0; r < 64; r++) {
+              const tt = r / 63, env = Math.sin(tt * Math.PI), v = Math.round(128 + 120 * Math.sin(tt * Math.PI * 2) * env);
+              for (let col = 0; col < 4; col++) {
+                const k = (4 * r + col) * 4;
+                img.data[k] = v; img.data[k + 1] = 128; img.data[k + 2] = 128; img.data[k + 3] = 255;
+              }
+            }
+            x.putImageData(img, 0, 0);
+            band.setAttribute('href', c.toDataURL());
+          }
+        }
+        // Film-grain tile (128px), jittered every other frame.
+        if (noise) {
+          const c = document.createElement('canvas');
+          c.width = c.height = 128;
+          const x = c.getContext('2d');
+          if (x) {
+            const img = x.createImageData(128, 128);
+            for (let i = 0; i < img.data.length; i += 4) {
+              const v = (255 * Math.random()) | 0;
+              img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+              img.data[i + 3] = 255;
+            }
+            x.putImageData(img, 0, 0);
+            noise.style.backgroundImage = `url(${c.toDataURL()})`;
+          }
+        }
+
+        const breatheTw = gsap.to(breathe, { scale: 1.07, duration: 22, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+        if (fine) video.style.filter = 'saturate(1.35) contrast(1.1) brightness(1.16) url(#crt-rgb)';
+
+        const m = { imp: 0, mdx: 1, mdy: 0, sdx: 0, sdy: 0, tx: 0, ty: 0, rx: 0, ry: 0 };
+        let raf = 0, running = false, frame = 0;
+        const loop = () => {
+          raf = requestAnimationFrame(loop);
+          m.imp *= 0.94;
+          if (m.imp < 0.005) m.imp = 0;
+          if (!fine) return;
+          if (noise && (frame = (frame + 1) % 2) === 0) noise.style.backgroundPosition = `${(128 * Math.random()) | 0}px ${(128 * Math.random()) | 0}px`;
+          if (band) band.setAttribute('y', (((performance.now() / 6500) % 1) * (innerHeight + 360) - 180).toFixed(1));
+          m.sdx += (m.mdx * m.imp * 10 - m.sdx) * 0.14;
+          m.sdy += (m.mdy * m.imp * 5 - m.sdy) * 0.14;
+          if (offR && offB) {
+            offR.dx.baseVal = m.sdx; offR.dy.baseVal = m.sdy;
+            offB.dx.baseVal = -m.sdx; offB.dy.baseVal = -m.sdy;
+          }
+          m.rx += (m.tx - m.rx) * 0.1;
+          m.ry += (m.ty - m.ry) * 0.1;
+          tilt.style.transform = `rotateX(${(-m.ry).toFixed(3)}deg) rotateY(${m.rx.toFixed(3)}deg)`;
+        };
+        new IntersectionObserver(([e]) => {
+          if (e?.isIntersecting) {
+            if (!running) { running = true; raf = requestAnimationFrame(loop); }
+            breatheTw.resume();
+            if (video.src) video.play().catch(() => {});
+          } else {
+            running = false;
+            cancelAnimationFrame(raf);
+            breatheTw.pause();
+            video.pause();
+          }
+        }).observe(root);
+        root.addEventListener('pointermove', (e) => {
+          if (e.pointerType !== 'mouse') return;
+          const d = Math.hypot(e.movementX, e.movementY);
+          if (d > 0.5) { m.mdx = e.movementX / d; m.mdy = e.movementY / d; m.imp = Math.min(1, m.imp + d / 42); }
+          m.tx = (e.clientX / innerWidth - 0.5) * 3.6;
+          m.ty = (e.clientY / innerHeight - 0.5) * 2.4;
+        });
+        root.addEventListener('pointerleave', () => { m.tx = 0; m.ty = 0; });
+
+        gsap.set(marks, { autoAlpha: 0, y: 36 });
+        afterVeil(() => {
+          gsap.to(h, { intro: 1, duration: 0.55, delay: 0.1, ease: 'power3.out', onUpdate: apply });
+          gsap.to(marks, { autoAlpha: 1, y: 0, duration: 1.1, ease: 'power3.out', delay: 0.2 });
+        });
+      }
+    }
+  });
+</script>
+
+<style>
+  .hero { position: relative; height: 190vh; }
+  .hero__pane { position: sticky; top: 0; z-index: 0; height: 100svh; overflow: hidden; --vu: var(--vu-fit); }
+  .hero__defs { position: absolute; }
+  .hero__mask { position: absolute; inset: 0; z-index: 0; }
+  .hero__screen { position: absolute; inset: 0; perspective: 1600px; will-change: transform; }
+  /* Powered-off CRT until the intro runs (JS then drives transform/clip/filter). */
+  html.js .hero__screen { transform: scaleY(0.006); filter: brightness(2.9); }
+  @media (prefers-reduced-motion: reduce) { html.js .hero__screen { transform: none; filter: none; } }
+  .hero__tilt { position: absolute; inset: -3%; will-change: transform; }
+  .hero__breathe { position: absolute; inset: 0; will-change: transform; }
+  .hero__poster, .hero__video {
+    position: absolute; inset: -16px; width: calc(100% + 32px); height: calc(100% + 32px); max-width: none;
+    object-fit: cover; filter: saturate(1.35) contrast(1.1) brightness(1.16);
+  }
+  .hero__video { opacity: 0; transition: opacity 0.6s ease; }
+  .hero__video.is-playing { opacity: 1; }
+  .hero__fx { position: absolute; inset: 0; pointer-events: none; }
+  .hero__scan { background-image: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0) 0px, rgba(0, 0, 0, 0) 3px, rgba(0, 0, 0, 0.55) 3px, rgba(0, 0, 0, 0.55) 5px); }
+  .hero__subpx {
+    background-image: repeating-linear-gradient(90deg, rgba(255, 40, 70, 0.9) 0px, rgba(255, 40, 70, 0.9) 2px, rgba(40, 255, 120, 0.9) 2px, rgba(40, 255, 120, 0.9) 4px, rgba(60, 90, 255, 0.9) 4px, rgba(60, 90, 255, 0.9) 6px);
+    mix-blend-mode: overlay; opacity: 0.3;
+  }
+  .hero__noise { background-size: 128px 128px; mix-blend-mode: screen; opacity: 0.06; }
+  @media (hover: none) { .hero__subpx, .hero__noise { display: none; } }
+  .hero__vignette { background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.42) 100%); }
+  .hero__corners {
+    background:
+      radial-gradient(calc(0.38 * var(--page-w)) 30% at var(--page-x) 0%, rgba(11, 10, 15, 0.62), transparent 70%),
+      radial-gradient(calc(0.34 * var(--page-w)) 26% at calc(100% - var(--page-x)) 0%, rgba(11, 10, 15, 0.56), transparent 70%),
+      radial-gradient(calc(0.6 * var(--page-w)) 54% at var(--page-x) 100%, rgba(11, 10, 15, 0.74), transparent 72%),
+      radial-gradient(calc(0.46 * var(--page-w)) 38% at calc(100% - var(--page-x)) 100%, rgba(11, 10, 15, 0.64), transparent 70%);
+  }
+
+  .hero__chrome { pointer-events: none; position: absolute; inset: 0 0 auto; top: 0; z-index: 10; height: 100svh; }
+  .hero__chrome-inner { position: absolute; inset-inline: var(--gutter); bottom: 76px; }
+  .hero__title {
+    position: relative; z-index: 10; text-transform: uppercase;
+    font-family: var(--font-hero); font-weight: 400; font-size: var(--hero-fs, 24.5vw);
+    color: var(--color-bone-warm); line-height: 0.75; letter-spacing: 0.03em; /* Audiowide is narrower than the reference face */
+  }
+  .hero__mark { position: absolute; right: 0; top: -5px; z-index: 10; display: flex; align-items: center; gap: 0.75rem; }
+  html.js .hero__mark { opacity: 0; visibility: hidden; transform: translateY(36px); }
+  .hero__crest { height: 3rem; width: auto; }
+  .hero__num { font-size: 3rem; line-height: 0.75; color: var(--color-bone); font-weight: 800; letter-spacing: -0.02em; }
+
+  @media (min-width: 768px) {
+    .hero__chrome { --vu: var(--vu-fit); }
+    .hero__chrome-inner { display: contents; }
+    .hero__title { position: absolute; bottom: 2rem; left: calc(var(--page-x) + 60px); --hero-fs: clamp(60px, calc(14.5 * var(--vu)), 212px); }
+    .hero__mark { top: auto; bottom: 3rem; right: calc(var(--page-x) + 64px); gap: 1rem; }
+    .hero__crest { height: min(122px, calc(var(--vu) * 122 / 14.4)); }
+    .hero__num { font-size: min(124px, calc(var(--vu) * 124 / 14.4)); }
+  }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
+    .hero { height: auto; }
+    .hero__pane { height: max(100svh, var(--min-h-phone)); top: 0; }
+  }
+  @media (min-width: 768px) and (max-width: 900px) and (pointer: coarse) { .hero__chrome { --vu: inherit; } }
+  @media (prefers-reduced-motion: reduce) { html.js .hero__mark { opacity: 1; visibility: visible; transform: none; } }
+</style>

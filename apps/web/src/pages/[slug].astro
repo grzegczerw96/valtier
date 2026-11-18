@@ -1,0 +1,45 @@
+---
+/** Holding page for sections that are not built yet. Uses the full site chrome
+ *  (nav, menu, transitions, footer) so navigation behaves like the final site.
+ *  Delete the slug from `pages` once a real page exists. */
+import { withBase } from '@valtier/ds/lib/base';
+import Base from '../layouts/Base.astro';
+import DotReveal from '@valtier/ds/components/DotReveal.astro';
+import Button from '@valtier/ds/components/Button.astro';
+import { footerVariants } from '../site.config';
+
+export function getStaticPaths() {
+  const pages = [
+    { slug: 'off-field', title: 'Off-Field' },
+    { slug: 'foundation', title: 'Foundation' },
+    { slug: 'partnerships', title: 'Partnerships' },
+    { slug: 'journal', title: 'Journal' },
+    { slug: 'inquiries', title: 'Inquiries' },
+    { slug: 'privacy', title: 'Privacy' },
+    { slug: 'terms', title: 'Terms' },
+  ];
+  return pages.map((p) => ({ params: { slug: p.slug }, props: p }));
+}
+const { title } = Astro.props as { slug: string; title: string };
+---
+<Base title={`${title} · Nico Valtier`} description={`${title} — coming soon.`} footer={footerVariants.onField}>
+  <section class="soon" data-tone="dark">
+    <p class="label soon__eyebrow">Coming soon</p>
+    <h1 class="display soon__title"><DotReveal waitForVeil delay={0.1}>{title}</DotReveal></h1>
+    <Button href={withBase("/on-field")} variant="light" size="md">Back to On-Field</Button>
+  </section>
+</Base>
+
+<script>
+  window.vDefer(async () => {
+    const { initAllDotReveals } = await import('@valtier/ds/motion/dot-reveal');
+    await window.vIdle();
+    initAllDotReveals(document.querySelector('.soon') ?? document);
+  });
+</script>
+
+<style>
+  .soon { min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2rem; padding: 6rem var(--gutter); text-align: center; }
+  .soon__eyebrow { color: var(--fg-55); }
+  .soon__title { font-size: var(--fs-display-xl); color: var(--color-bone); }
+</style>

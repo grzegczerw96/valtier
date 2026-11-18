@@ -1,0 +1,228 @@
+---
+/** Site footer ("invitation"): once its top passes 70% of the viewport the page
+ *  background cross-fades to leather (--fdp: 0 -> 1, .8s), the theme goes dark,
+ *  the signature writes itself and the headline dot-reveals line by line. */
+import Button from './Button.astro';
+import DotReveal from './DotReveal.astro';
+import FooterPanel from './FooterPanel.astro';
+import PartnerMarquee from './PartnerMarquee.astro';
+import Signature from './Signature.astro';
+import type { FooterCta, SiteSettings } from '../lib/types';
+interface Props { settings: SiteSettings; variant: FooterCta; trophy?: { src: string; href: string; label: string } }
+const { settings, variant, trophy } = Astro.props;
+const shift = variant.image.shift ?? 0.4;
+const aspect = variant.image.width / variant.image.height;
+---
+<footer class="footer" data-footer style={`--player-aspect:${aspect.toFixed(4)}`}>
+  <PartnerMarquee partners={settings.partners} class="footer__partners" />
+
+  <div class="footer__center" data-footer-center>
+    <div class="footer__invite" data-footer-invitation="false" inert aria-hidden="true">
+      <div class="footer__halo" aria-hidden="true"></div>
+      <Signature class="footer__sig" label={`${settings.brandName} signature`} />
+      <h2 class="display footer__headline" data-footer-headline>
+        {variant.headline.map((line, i) => (
+          <DotReveal class:list={['footer__line', variant.phoneHeadline ? 'footer__line--desk' : null]} perLine event="v:footer-invitation">{line}</DotReveal>
+        ))}
+        {variant.phoneHeadline?.map((line) => (
+          <span class="footer__line footer__line--phone">{line}</span>
+        ))}
+      </h2>
+      <Button href={variant.cta.href} variant="cta" size="lg" class="footer__cta">{variant.cta.label}</Button>
+    </div>
+  </div>
+
+  <div class="footer__cutout">
+    <img src={variant.image.src} alt={variant.image.alt} width={variant.image.width} height={variant.image.height} loading="lazy" decoding="async"
+      style={`--cutout-shift-phone:translateX(${((1 - shift) * 100).toFixed(1)}%)`} />
+  </div>
+
+  <FooterPanel settings={settings} trophy={trophy} />
+</footer>
+<div class="footer-light" aria-hidden="true" data-footer-light></div>
+
+<script>
+  window.vDefer(async () => {
+    const { ScrollTrigger } = await import('../motion/gsap');
+    const { isPhone, prefersReducedMotion } = await import('../motion/env');
+    const { initAllDotReveals, emitReveal } = await import('../motion/dot-reveal');
+    const { whenNear } = await import('../motion/inview');
+    await window.vIdle();
+
+    const footerEl = document.querySelector<HTMLElement>('[data-footer]');
+    if (footerEl) window.vDefer(() => initFooter(footerEl));
+    function initFooter(footer: HTMLElement) {
+      const root = document.documentElement;
+      const invite = footer.querySelector<HTMLElement>('[data-footer-invitation]');
+      const sig = footer.querySelector<HTMLElement>('[data-signature]');
+      const center = footer.querySelector<HTMLElement>('[data-footer-center]');
+      const headline = footer.querySelector<HTMLElement>('[data-footer-headline]');
+      whenNear(footer, () => window.vDefer(() => initAllDotReveals(footer)));
+
+      // Prepare the heavy leather texture only when the footer is near.
+      const near = new IntersectionObserver(([e]) => {
+        if (e?.isIntersecting) { root.setAttribute('data-footer-prepared', ''); near.disconnect(); }
+      }, { rootMargin: '2000px' });
+      near.observe(footer);
+
+      // Hide the floating nav logo while most of the footer is on screen (desktop).
+      if (!isPhone()) {
+        new IntersectionObserver(([e]) => {
+          const need = 0.55 * Math.min(e?.boundingClientRect.height ?? 0, innerHeight);
+          e?.isIntersecting && e.intersectionRect.height >= need - 1 ? root.setAttribute('data-footer-active', 'true') : root.removeAttribute('data-footer-active');
+        }, { threshold: Array.from({ length: 41 }, (_, i) => i / 40) }).observe(footer);
+      }
+
+      let dark: boolean | null = null;
+      let prevTheme: string | null = null;
+      let hideTimer = 0;
+      const setInvite = (on: boolean) => {
+        clearTimeout(hideTimer);
+        const apply = () => {
+          invite?.setAttribute('data-footer-invitation', String(on));
+          invite?.toggleAttribute('inert', !on);
+          invite?.setAttribute('aria-hidden', String(!on));
+          sig?.setAttribute('data-active', String(on));
+          emitReveal('v:footer-invitation', on);
+        };
+        on ? apply() : (hideTimer = window.setTimeout(apply, 800));
+      };
+      const update = () => {
+        const on = footer.getBoundingClientRect().top <= 0.7 * (innerHeight || 1);
+        if (on) {
+          if (prevTheme === null) prevTheme = document.body.getAttribute('data-theme');
+          document.body.setAttribute('data-theme', 'tone-dark');
+          document.body.setAttribute('data-footer-dark', '1');
+        } else if (dark) {
+          document.body.removeAttribute('data-footer-dark');
+          if (prevTheme !== null) document.body.setAttribute('data-theme', prevTheme);
+          prevTheme = null;
+        }
+        if (on !== dark) {
+          dark = on;
+          root.style.setProperty('--fdp', on ? '1' : '0');
+          setInvite(on);
+        }
+      };
+      ScrollTrigger.create({ start: 0, end: 'max', onUpdate: update });
+      ScrollTrigger.addEventListener('refresh', update);
+      addEventListener('resize', update);
+      update();
+
+      // Fit the headline between the panel and the player cut-out.
+      if (center && headline) {
+        const measure = () => {
+          if (isPhone() || document.fonts.status === 'loading') return;
+          const fs = parseFloat(getComputedStyle(headline).fontSize);
+          const w = headline.getBoundingClientRect().width;
+          if (fs > 0 && w > 0) center.style.setProperty('--footer-headline-ratio', (Math.round((w / fs) * 1000) / 1000).toFixed(3));
+        };
+        document.fonts.ready.then(measure);
+        new ResizeObserver(measure).observe(headline);
+      }
+
+      // Soft light that drifts with the pointer.
+      const light = document.querySelector<HTMLElement>('[data-footer-light]');
+      if (light && !prefersReducedMotion() && !isPhone()) {
+        let target = 0, x = 0, raf = 0;
+        addEventListener('pointermove', (e) => { target = ((e.clientX / (innerWidth || 1)) * 2 - 1) * innerWidth * 0.045; }, { passive: true });
+        const tick = () => {
+          x += (target - x) * 0.06;
+          light.style.transform = `translate3d(${x.toFixed(2)}px,0,0)`;
+          raf = requestAnimationFrame(tick);
+        };
+        new IntersectionObserver(([e]) => {
+          cancelAnimationFrame(raf);
+          if (e?.isIntersecting) raf = requestAnimationFrame(tick);
+        }).observe(footer);
+      }
+    }
+  });
+</script>
+
+<style is:global>
+  :root {
+    --footer-comp-h: max(560px, min(max(100svh, var(--min-h)), calc(var(--page-w) * 0.625)));
+    --footer-desktop-height: var(--footer-comp-h);
+  }
+  @media (max-width: 767px) { :root { --footer-desktop-height: max(680px, 100svh); } }
+  /* Touch tablets / phones in landscape (768–900px wide): size from the short height. */
+  @media (min-width: 768px) and (max-width: 900px) and (pointer: coarse) {
+    :root { --footer-desktop-height: 100svh; }
+    .footer { --footer-comp-h: var(--footer-desktop-height); --footer-cutout-h: min(var(--footer-desktop-height), 62.5vw); }
+  }
+  @media (min-width: 768px) and (max-width: 900px) and (pointer: coarse) and (orientation: landscape) {
+    .footer { --cu: calc((100svh - 107px) / 800); }
+    .footer__center { --footer-headline-size: calc((100svh - 107px) * 0.19); }
+    .footer__invite { padding-bottom: 107px; }
+  }
+  .footer {
+    position: relative; z-index: var(--z-footer); display: flex; flex-direction: column; width: 100%; overflow: hidden;
+    color: var(--color-bone); --footer-cutout-h: var(--footer-comp-h);
+    min-height: var(--footer-desktop-height);
+  }
+  @media (min-width: 768px) { .footer { display: block; height: var(--footer-desktop-height); } }
+  @media (max-width: 900px) and (pointer: coarse) { .footer { --mark-scale: 0.55; } }
+
+  .footer__partners { position: absolute; inset-inline: 0; bottom: 1.25rem; z-index: 3; display: flex; height: 56px; align-items: center; }
+  @media (min-width: 768px) { .footer__partners { bottom: 1.5rem; z-index: 4; height: 96px; } }
+
+  .footer__center {
+    --footer-card-reach: calc(var(--page-x) + clamp(280px, calc(var(--page-w) * 0.215), 400px) + 40px);
+    --footer-headline-size: min(clamp(44px, calc(9.8583 * var(--vu)), 236px), max(56px, calc((100vw - 2 * var(--footer-card-reach)) / var(--footer-headline-ratio, 1))));
+    --footer-headline-shift: max(0px, calc(2 * var(--footer-card-reach) + var(--footer-headline-ratio, 0) * var(--footer-headline-size) - 100vw));
+    pointer-events: none; position: relative; z-index: 5; display: flex; flex: 1; flex-direction: column; align-items: flex-start; justify-content: flex-end;
+    padding: 3.5rem var(--gutter) 92px; text-align: left;
+  }
+  @media (min-width: 768px) {
+    .footer__center { position: absolute; inset: 0; flex: none; flex-direction: row; align-items: center; justify-content: center; padding: 0 0 0 var(--footer-headline-shift); text-align: center; height: var(--footer-comp-h); top: auto; }
+  }
+  @media (min-width: 768px) and (max-width: 895.98px) and (pointer: fine) { .footer__center { z-index: 7; } }
+
+  .footer__invite {
+    pointer-events: auto; position: relative; display: flex; width: 100%; flex-direction: column; align-items: flex-start; text-align: left;
+    container-type: inline-size; opacity: 0; transition: opacity 800ms var(--ease-editorial);
+  }
+  .footer__invite[data-footer-invitation='true'] { opacity: 1; }
+  @media (min-width: 768px) { .footer__invite { width: auto; align-items: center; text-align: center; padding-bottom: min(132px, calc(132 * var(--cu))); } }
+  @media (min-width: 768px) and (pointer: fine) and (not (min-aspect-ratio: 8/5)), (min-width: 901px) and (not (min-aspect-ratio: 8/5)) { .footer__invite { padding-bottom: 0; } }
+  .footer__halo {
+    position: absolute; inset: -3rem -5rem; z-index: -1; pointer-events: none;
+    background: radial-gradient(ellipse 58% 56% at 38% 58%, rgba(23, 18, 32, 0.9) 0%, rgba(23, 18, 32, 0.62) 36%, rgba(23, 18, 32, 0.22) 60%, rgba(23, 18, 32, 0) 78%);
+  }
+  @media (min-width: 768px) { .footer__halo { display: none; } }
+  .footer__sig { margin-left: -60px; display: block; height: 6rem; width: 14rem; }
+  @media (max-width: 767px) { .footer__sig { transform-origin: 60px center; scale: 0.85; } }
+  @media (min-width: 768px) { .footer__sig { margin-left: 0; height: min(144px, calc(144 * var(--cu))); width: min(320px, calc(320 * var(--cu))); } }
+  .footer__headline { margin-top: 0.75rem; max-width: 62%; font-size: 20vw; line-height: 0.83; text-wrap: balance; color: var(--color-bone); }
+  @media (min-width: 768px) { .footer__headline { margin-top: min(16px, calc(16 * var(--cu))); max-width: none; font-size: var(--footer-headline-size); line-height: 0.83; text-wrap: auto; } }
+  .footer__line { display: block; }
+  @media (min-width: 768px) { .footer__line { white-space: nowrap; } }
+  .footer__line--phone { display: none; white-space: nowrap; }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
+    .footer__line--desk { display: none; }
+    .footer__line--phone { display: block; }
+  }
+  .footer__cta { margin-top: 2rem; }
+  @media (max-width: 767px) { .footer__cta.btn--lg { padding: 22px 3.5rem; font-size: 20px; } }
+  @media (min-width: 768px) {
+    .footer__cta.btn--lg { margin-top: min(48px, calc(48 * var(--cu))); padding: clamp(20px, calc(32 * var(--cu)), 32px) clamp(48px, calc(80 * var(--cu)), 80px); font-size: clamp(18px, calc(24 * var(--cu)), 24px); }
+  }
+
+  .footer__cutout { pointer-events: none; position: absolute; bottom: 0; right: var(--page-x); z-index: 4; height: 96%; }
+  @media (min-width: 768px) { .footer__cutout { z-index: 6; height: var(--footer-cutout-h); } }
+  .footer__cutout img {
+    height: 100%; width: auto; max-width: none; object-fit: contain; object-position: bottom;
+    transform: var(--cutout-shift-phone);
+  }
+  @media (min-width: 768px) {
+    .footer__cutout img { transform: translateX(max(0px, min(calc(var(--footer-cutout-h) * var(--player-aspect) - var(--page-w) * 0.27), calc(var(--footer-cutout-h) * var(--player-aspect) * 0.45)))); }
+  }
+
+  .footer-light {
+    position: fixed; inset: 0 -7vw; z-index: var(--z-footer-light); pointer-events: none;
+    background: url('/textures/light.webp') center / cover no-repeat; mix-blend-mode: soft-light; will-change: transform;
+    opacity: calc(var(--fdp, 0) * 0.9); transition: opacity var(--footer-fade) var(--ease-editorial);
+  }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) { .footer-light { display: none; } }
+</style>

@@ -1,0 +1,130 @@
+---
+import { withBase } from '@valtier/ds/lib/base';
+import DotReveal from '@valtier/ds/components/DotReveal.astro';
+import { career, seasons } from '../../content/on-field';
+const fmt = (n: number) => n.toLocaleString('en-US');
+const stats = [
+  { label: 'Games', value: career.games },
+  { label: 'Touchdowns', value: career.touchdowns },
+  { label: 'Receptions', value: career.receptions },
+  { label: 'Targets', value: career.targets },
+];
+---
+<section class="career cv-auto" style="--cv-h:1120px" data-section="on-career" data-tone="dark" aria-label="Pro career statistics" data-career>
+  <div class="career__grid">
+    <div class="career__aside">
+      <h2 class="display career__title"><DotReveal>{career.heading}</DotReveal></h2>
+      <p class="label-sm career__since">Since {career.since}</p>
+      <div class="career__photo fade-frame">
+        <img data-fade src={withBase("/media/career.webp")} alt="Nico Valtier sprinting upfield with the ball" width="938" height="1386" loading="lazy" decoding="async" />
+      </div>
+    </div>
+    <div class="career__main">
+      <div class="career__stats">
+        {stats.map((s) => (
+          <div>
+            <span class="label-sm career__muted">{s.label}</span>
+            <span class="numeric career__value" data-count={s.value}>{fmt(s.value)}</span>
+          </div>
+        ))}
+      </div>
+      <p class="label-sm career__hint career__muted" aria-hidden="true">{career.swipeHint}</p>
+      <div class="career__scroller" tabindex="0" role="region" aria-label="Season-by-season table">
+        <table class="career__table">
+          <caption class="sr-only">Season-by-season receiving and rushing statistics</caption>
+          <thead>
+            <tr class="label-sm career__muted">
+              <th scope="col">YR</th>
+              <th scope="col">Team</th>
+              <th scope="col" class="r">REC</th>
+              <th scope="col" class="r">YDS</th>
+              <th scope="col" class="r">AVG</th>
+              <th scope="col" class="r">LNG</th>
+              <th scope="col" class="r">TD</th>
+              <th scope="col" class="r"><span aria-hidden="true">YDS</span><span class="sr-only">Rushing yards</span></th>
+              <th scope="col" class="r last"><span aria-hidden="true">AVG</span><span class="sr-only">Rushing average</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {seasons.map((s) => (
+              <tr>
+                <td>{s.year}</td>
+                <td>{s.team}</td>
+                <td class="r">{fmt(s.receptions)}</td>
+                <td class="r">{fmt(s.yards)}</td>
+                <td class="r">{s.avg.toFixed(1)}</td>
+                <td class="r">{s.long}</td>
+                <td class="r">{s.touchdowns}</td>
+                <td class="r">{fmt(s.rushYards)}</td>
+                <td class="r last">{s.rushAvg.toFixed(1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  window.vDefer(async () => {
+    const { gsap } = await import('@valtier/ds/motion/gsap');
+    const { prefersReducedMotion, fmt } = await import('@valtier/ds/motion/env');
+    const { revealOnce, whenNear } = await import('@valtier/ds/motion/inview');
+    const { initAllDotReveals } = await import('@valtier/ds/motion/dot-reveal');
+    await window.vIdle();
+    const section = document.querySelector<HTMLElement>('[data-career]');
+    if (section) whenNear(section, () => window.vDefer(() => init(section)));
+    function init(root: HTMLElement) {
+      initAllDotReveals(root);
+      if (!prefersReducedMotion()) {
+        root.querySelectorAll<HTMLElement>('[data-count]').forEach((el, i) => {
+          const target = +(el.dataset.count || 0);
+          if (!(target > 0)) return;
+          const o = { v: 0 };
+          const tw = gsap.to(o, { v: target, duration: 1.6, delay: 0.08 * i, ease: 'power3.out', paused: true, onUpdate: () => (el.textContent = fmt(Math.round(o.v))) });
+          revealOnce(root, 0.6, () => { el.textContent = fmt(0); tw.play(); });
+        });
+      }
+    }
+  });
+</script>
+
+<style>
+  .career { position: relative; margin-inline: auto; max-width: var(--content-max); padding: 4rem var(--gutter); }
+  .career__grid { display: grid; gap: 3.5rem; }
+  .career__title { font-size: 20vw; color: var(--color-bone); }
+  .career__since { margin-top: 0.75rem; }
+  .career__muted { color: var(--fg-muted); }
+  .career__since { color: var(--fg-muted); }
+  .career__photo { position: relative; margin-top: 2rem; aspect-ratio: 4 / 5; width: 100%; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-card-photo); }
+  .career__photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .career__main { min-width: 0; }
+  .career__stats { display: grid; max-width: 560px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2.5rem 2rem; }
+  .career__value { display: block; margin-top: 0.75rem; font-size: clamp(64px, calc(8.5 * var(--vu)), 146px); color: var(--color-bone); }
+  .career__hint { margin-top: 3rem; }
+  .career__scroller { position: relative; margin: 1rem calc(-1 * var(--gutter)) 0; overflow-x: auto; padding-inline: var(--gutter); scrollbar-width: none; }
+  .career__scroller::-webkit-scrollbar { display: none; }
+  .career__table { width: 100%; min-width: 640px; text-align: left; font-size: clamp(16px, 1.11vw, 19px); }
+  .career__table th { padding: 0 1rem 1rem 0; font-weight: 400; }
+  .career__table td { padding: 1rem 1rem 1rem 0; font-weight: 700; color: var(--color-bone); font-variant-numeric: tabular-nums; }
+  .career__table .r { text-align: right; }
+  .career__table .last { padding-right: 0; }
+  .career__table tbody tr { border-top: 1px solid var(--fg-14); transition: background-color 0.2s; }
+  .career__table tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
+  @media (min-width: 700px) { .career__hint { display: none; } }
+  @media (min-width: 768px) {
+    .career { padding: min(144px, calc(10 * var(--vu))) 60px; }
+    .career__title { font-size: clamp(64px, calc(6.8 * var(--vu)), 104px); }
+    .career__photo { margin-top: 3rem; aspect-ratio: 469 / 693; max-height: calc(75 * var(--of-vh)); }
+    .career__stats { gap: 3rem 4rem; }
+    .career__scroller { margin: 4rem 0 0; padding-inline: 0; }
+  }
+  @media (min-width: 1024px) {
+    .career__grid { grid-template-columns: minmax(320px, min(32.6vw, 563px)) 1fr; gap: 6rem; }
+    .career__aside { display: flex; flex-direction: column; }
+    .career__photo { aspect-ratio: auto; max-height: none; flex: 1; }
+    .career__main { padding-top: 0.25rem; }
+    .career__stats { max-width: min(38.9vw, 672px); }
+  }
+</style>

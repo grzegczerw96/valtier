@@ -1,0 +1,24 @@
+---
+/** Contextual cursor pill (e.g. "Drag") for elements with data-cursor. */
+---
+<div class="cursor-pill" data-interaction-cursor aria-hidden="true"><span></span></div>
+
+<script>
+  window.vDefer(async () => {
+    const { initCursor } = await import('../motion/cursor');
+    await window.vIdle();
+    const pill = document.querySelector<HTMLElement>('[data-interaction-cursor]');
+    if (pill) initCursor(pill);
+  });
+</script>
+
+<style is:global>
+  .cursor-pill {
+    position: fixed; left: 0; top: 0; z-index: var(--z-cursor); pointer-events: none;
+    visibility: hidden; opacity: 0;
+    display: flex; align-items: center; justify-content: center; height: 2.25rem; min-width: 4rem; padding: 0 1rem;
+    border-radius: var(--radius-pill); background: var(--color-bone); color: var(--color-ink-deep);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+  .cursor-pill span { font-family: var(--font-mono); font-size: 10px; line-height: 1; letter-spacing: 0.06em; text-transform: uppercase; }
+</style>

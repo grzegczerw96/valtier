@@ -1,0 +1,195 @@
+---
+import { totalYards } from '../../content/on-field';
+const text = totalYards.yards.toLocaleString('en-US');
+const digits = text.replace(/[^0-9]/g, '').length;
+const k = (4.5 / Math.max(4.5, digits + (text.length - digits) * 0.5)).toFixed(4);
+// 0.8: Saira (wdth 50, wght 500) runs ~25% wider than the reference numerals; match its footprint.
+const fontSize = `calc(0.8 * min(calc(var(--ty-base, calc(0.62 * var(--page-w))) * ${k}), calc(108 * var(--of-vh))))`;
+---
+<section class="ty" data-section="on-total-yards" data-tone="dark" aria-label={`${text} total receiving yards today`} data-yards data-text={text}>
+  <div class="ty__wrap">
+    <div class="ty__ghost numeric dr-ghost-num" aria-hidden="true" data-ty-ghost style={`font-size:${fontSize}`}>{text}</div>
+    <div class="ty__num numeric" aria-hidden="true" data-ty-num style={`font-size:${fontSize}`}>{text}</div>
+    <canvas class="ty__canvas" aria-hidden="true" data-ty-canvas></canvas>
+  </div>
+  <p class="label ty__label">{totalYards.label}</p>
+</section>
+
+<script>
+  window.vDefer(async () => {
+    const { gsap, ScrollTrigger } = await import('@valtier/ds/motion/gsap');
+    const { isPhone, prefersReducedMotion, hasFinePointer, clamp01, mixInt } = await import('@valtier/ds/motion/env');
+    const { revealOnce, whenNear } = await import('@valtier/ds/motion/inview');
+    const { DOT_PITCH_BASE, GHOST_OPACITY } = await import('@valtier/ds/motion/dot-reveal');
+    await window.vIdle();
+
+    const section = document.querySelector<HTMLElement>('[data-yards]');
+    if (section) whenNear(section, () => window.vDefer(() => init(section)));
+    function init(root: HTMLElement) {
+      const num = root.querySelector<HTMLElement>('[data-ty-num]')!;
+      const canvas = root.querySelector<HTMLCanvasElement>('[data-ty-canvas]')!;
+      const ghost = root.querySelector<HTMLElement>('[data-ty-ghost]')!;
+      const text = root.dataset.text || '';
+      const phone = isPhone();
+      const fine = hasFinePointer();
+      const P = DOT_PITCH_BASE;
+
+      if (prefersReducedMotion()) {
+        num.style.clipPath = 'none';
+        canvas.style.display = 'none';
+        ghost.style.display = 'none';
+      } else {
+        const ctx = phone ? null : canvas.getContext('2d');
+        if (phone) canvas.style.display = 'none';
+        else ghost.style.display = 'none';
+        type Dot = { x: number; y: number; t: number; ox: number; oy: number; g: number };
+        let dots: Dot[] = [], W = 0, H = 0, R = 0, pad = 0, dpr = 1, A = 0, visible = true, raf = 0;
+        const mouse = { x: -9999, y: -9999 };
+
+        const build = () => {
+          if (!ctx) return;
+          const box = num.getBoundingClientRect();
+          W = Math.max(10, Math.round(box.width));
+          H = Math.max(10, Math.round(box.height));
+          pad = Math.round(0.15 * H);
+          R = H + 2 * pad;
+          dpr = Math.min(2, devicePixelRatio || 1);
+          canvas.width = W * dpr; canvas.height = R * dpr;
+          canvas.style.width = `${W}px`; canvas.style.height = `${R}px`; canvas.style.top = `-${pad}px`;
+          const off = document.createElement('canvas');
+          off.width = W; off.height = R;
+          const o = off.getContext('2d', { willReadFrequently: true });
+          if (!o) return;
+          const cs = getComputedStyle(num);
+          const probe = document.createElement('span');
+          probe.style.cssText = 'display:inline-block;width:0;height:0;overflow:hidden;';
+          num.appendChild(probe);
+          const base = probe.getBoundingClientRect().bottom - box.top;
+          num.removeChild(probe);
+          const ls = parseFloat(cs.letterSpacing) || 0;
+          const node = num.firstChild;
+          const boxes: { left: number; width: number }[] = [];
+          if (node?.nodeType === Node.TEXT_NODE && node.textContent === text) {
+            const rg = document.createRange();
+            for (let i = 0; i < text.length; i++) {
+              rg.setStart(node, i); rg.setEnd(node, i + 1);
+              const r = rg.getBoundingClientRect();
+              boxes.push({ left: r.left - box.left, width: r.width - ls });
+            }
+          }
+          o.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+          o.textBaseline = 'alphabetic';
+          o.fillStyle = '#fff';
+          if (boxes.length === text.length && boxes.every((b) => b.width > 0)) {
+            for (let i = 0; i < text.length; i++) {
+              const m = o.measureText(text[i]);
+              if (m.width <= 0) continue;
+              o.save(); o.translate(boxes[i].left, base + pad); o.scale(boxes[i].width / m.width, 1); o.fillText(text[i], 0, 0); o.restore();
+            }
+          } else {
+            const w = o.measureText(text).width;
+            o.textAlign = 'center';
+            o.save(); o.translate(W / 2, base + pad); if (w > 0) o.scale(W / w, 1); o.fillText(text, 0, 0); o.restore();
+          }
+          const px = o.getImageData(0, 0, W, R).data;
+          dots = [];
+          for (let y = P / 2; y < R; y += P)
+            for (let x = P / 2; x < W; x += P)
+              if (px[(Math.round(y) * W + Math.round(x)) * 4 + 3] > 128)
+                dots.push({ x, y, t: ((x + 0.18 * W * (y / R)) / (1.18 * W)) * 0.8 + 0.1 * Math.random(), ox: 0, oy: 0, g: 0 });
+        };
+
+        const draw = () => {
+          if (!ctx) return;
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx.clearRect(0, 0, W, R);
+          const appear = Math.min(A / 0.68, 1);
+          const line = -12 + clamp01((A - 0.74) / 0.24) * (1.18 * W + 12);
+          for (const d of dots) {
+            let fx = 0, fy = 0, glow = 0;
+            if (fine) {
+              const dx = d.x - mouse.x, dy = d.y - mouse.y, dist = Math.hypot(dx, dy);
+              if (dist < 130 && dist > 0.001) {
+                const k = 1 - dist / 130;
+                fx = (dx / dist) * k * 18; fy = (dy / dist) * k * 18; glow = k;
+              }
+            }
+            d.ox += (fx - d.ox) * 0.16; d.oy += (fy - d.oy) * 0.16; d.g += (glow - d.g) * 0.2;
+            const s = clamp01((appear - d.t) / 0.1);
+            const edge = line - 0.18 * W * (d.y / R);
+            const a = Math.max(s * clamp01((d.x - edge) / 10), 0.85 * d.g);
+            if (a <= 0.02) continue;
+            const c = Math.min(1, 0.3 + 0.7 * s + 0.6 * d.g);
+            ctx.globalAlpha = a;
+            ctx.fillStyle = `rgb(${mixInt(46, 244, c)}, ${mixInt(43, 239, c)}, ${mixInt(51, 230, c)})`;
+            ctx.beginPath();
+            ctx.arc(d.x + d.ox, d.y + d.oy, P * (0.086 + 0.093 * s + 0.057 * d.g), 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+        };
+        const clip = (p: number) => {
+          const t = clamp01(phone ? p : (p - 0.74) / 0.24);
+          if (t >= 1) return void (num.style.clipPath = 'none');
+          const x = 118 * t;
+          num.style.clipPath = `polygon(0 -15%, ${x}% -15%, ${x - 18}% 115%, 0 115%)`;
+        };
+        let ramp = 0;
+        const ghostFx = () => {
+          if (!phone) return;
+          if (A >= 1) return void (ghost.style.opacity = '0');
+          ghost.style.opacity = String(Math.max(ramp, Math.min(1, 4 * A)) * GHOST_OPACITY);
+        };
+        clip(0);
+        if (phone) {
+          ScrollTrigger.create({ trigger: root, start: 'top bottom', end: 'top 78%', onUpdate: (s) => { ramp = s.progress; ghostFx(); } });
+        }
+        const st = { p: 0 };
+        revealOnce(root, 0.78, () => {
+          gsap.to(st, {
+            p: 1, duration: phone ? 0.9 : 1.25, ease: 'power1.inOut',
+            onUpdate: () => { A = st.p; clip(A); if (phone) ghostFx(); else if (!fine) draw(); },
+          });
+        });
+        if (!phone) {
+          const rebuild = () => { build(); if (!fine) draw(); };
+          const loop = () => { if (visible) draw(); raf = requestAnimationFrame(loop); };
+          if (fine) {
+            new IntersectionObserver(([e]) => (visible = !!e?.isIntersecting), { rootMargin: '15% 0px' }).observe(root);
+            root.addEventListener('pointermove', (e) => { const r = canvas.getBoundingClientRect(); mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top; });
+            root.addEventListener('pointerleave', () => { mouse.x = -9999; mouse.y = -9999; });
+          }
+          addEventListener('resize', rebuild);
+          document.fonts?.ready.then(rebuild);
+          document.fonts?.addEventListener('loadingdone', rebuild);
+          let first = true;
+          new ResizeObserver(() => { if (first) { first = false; return; } rebuild(); }).observe(num);
+          build();
+          if (fine) raf = requestAnimationFrame(loop);
+        }
+      }
+    }
+  });
+</script>
+
+<style>
+  .ty { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; padding: 1.5rem 0 4rem; }
+  .ty__wrap { position: relative; --ty-base: 73vw; }
+  .ty__num, .ty__ghost { white-space: nowrap; text-align: center; line-height: 0.78; color: var(--color-bone); letter-spacing: -0.02em; font-weight: 500; }
+  .ty__num { position: relative; }
+  html.js .ty__num { clip-path: polygon(0 -15%, 0% -15%, -18% 115%, 0 115%); }
+  .ty__ghost { display: none; }
+  .ty__canvas { pointer-events: none; position: absolute; left: 0; top: 0; }
+  .ty__label { margin-top: 2.5rem; color: var(--fg-55); }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
+    .ty__ghost { display: block; position: absolute; inset: 0; opacity: 0; pointer-events: none; user-select: none; }
+    .ty__canvas { display: none !important; }
+  }
+  @media (min-width: 768px) {
+    .ty { margin-top: -42vh; min-height: calc(100 * var(--of-vh)); padding-block: 3rem; }
+    .ty__wrap { --ty-base: calc(0.62 * var(--page-w)); }
+    .ty__label { margin-top: 6rem; }
+  }
+  @media (min-width: 768px) and (max-width: 900px) and (pointer: coarse) { .ty { margin-top: calc(-42 * var(--of-vh)); pointer-events: none; } }
+  @media (prefers-reduced-motion: reduce) { html.js .ty__num { clip-path: none; } }
+</style>

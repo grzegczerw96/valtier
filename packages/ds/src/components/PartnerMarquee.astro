@@ -1,0 +1,36 @@
+---
+/** Endless partner strip (80s per loop). Partners are typographic wordmarks so
+ *  no third-party logos ship with the system. */
+import type { Partner } from '../lib/types';
+interface Props { partners: Partner[]; class?: string; color?: string }
+const { partners, class: cls, color = 'color-mix(in srgb, var(--color-purple-fog) 40%, var(--color-taupe) 60%)' } = Astro.props;
+const set = [...partners, ...partners, ...partners];
+---
+<div class:list={['partners', cls]} aria-hidden="true" style={`--partner-color:${color}`}>
+  <div class="partners__track">
+    {[0, 1].map(() => (
+      <div class="partners__set">
+        {set.map((p) => (
+          <span class={`partners__mark partners__mark--${p.style}`} style={`--s:${p.scale ?? 1};${p.tracking ? `letter-spacing:${p.tracking};` : ''}${p.weight ? `font-weight:${p.weight};` : ''}`}>{p.name}</span>
+        ))}
+      </div>
+    ))}
+  </div>
+</div>
+
+<style is:global>
+  .partners { pointer-events: none; overflow: hidden; color: var(--partner-color); }
+  .partners__track { display: flex; width: max-content; height: 100%; align-items: center; animation: v-partner-marquee 80s linear infinite; }
+  .partners__set { display: flex; height: 100%; flex-shrink: 0; align-items: center; min-width: max-content; }
+  .partners__mark {
+    flex-shrink: 0; margin-right: clamp(56px, 6.5vw, 130px); white-space: nowrap; line-height: 1;
+    font-size: calc(26px * var(--s) * var(--mark-scale, 1));
+  }
+  .partners__mark--display { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; font-size: calc(36px * var(--s) * var(--mark-scale, 1)); }
+  .partners__mark--body { font-family: var(--font-body); font-weight: 800; letter-spacing: -0.03em; }
+  .partners__mark--mono { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.18em; font-size: calc(20px * var(--s) * var(--mark-scale, 1)); }
+  .partners__mark--hero { font-family: var(--font-hero); text-transform: uppercase; }
+  .partners__mark--serif { font-family: Georgia, 'Times New Roman', serif; font-style: italic; letter-spacing: -0.01em; }
+  @keyframes v-partner-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @media (prefers-reduced-motion: reduce) { .partners__track { animation: none; } }
+</style>

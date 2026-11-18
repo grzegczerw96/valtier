@@ -1,0 +1,33 @@
+---
+/** Heading entrance (see motion/dot-reveal.ts). Wrap the text of a heading:
+ *    <h2 class="display"><DotReveal>Rewriting the record books</DotReveal></h2>
+ *  Without JavaScript the text is simply visible. */
+interface Props {
+  as?: string;
+  class?: string;
+  delay?: number;
+  waitForVeil?: boolean;
+  event?: string;
+  startAt?: number;
+  phoneStartAt?: number;
+  perLine?: boolean;
+  ghost?: string;
+}
+const { as: Tag = 'span', class: cls, delay, waitForVeil, event, startAt, phoneStartAt, perLine, ghost } = Astro.props;
+const html = await Astro.slots.render('default');
+const ghostText = ghost ?? html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+---
+<Tag
+  class:list={['dr', cls]}
+  data-dot-reveal
+  data-delay={delay}
+  data-wait-veil={waitForVeil ? '' : undefined}
+  data-event={event}
+  data-start={startAt}
+  data-phone-start={phoneStartAt}
+  data-per-line={perLine ? '' : undefined}
+>
+  <span class="dr-ghost" aria-hidden="true" data-text={ghostText}></span>
+  <span class="dr-content"><Fragment set:html={html} /></span>
+  <canvas class="dr-canvas" aria-hidden="true"></canvas>
+</Tag>

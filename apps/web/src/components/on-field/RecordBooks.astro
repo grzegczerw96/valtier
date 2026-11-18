@@ -1,0 +1,462 @@
+---
+import DotReveal from '@valtier/ds/components/DotReveal.astro';
+import { records, categories } from '../../content/on-field';
+const BLUR = [
+  { blur: 1, stop: 0 }, { blur: 2, stop: 20 }, { blur: 3.2, stop: 42 }, { blur: 4.8, stop: 62 }, { blur: 7, stop: 80 },
+];
+---
+<section class="rec cv-auto" style="--cv-h:1010px" data-section="on-records" data-tone="dark" aria-label="Rewriting the record books" data-records>
+  <div class="rec__head">
+    <h2 class="display rec__title"><DotReveal>Rewriting the Record Books</DotReveal></h2>
+  </div>
+
+  <div class="rec__stage" data-rec-stage>
+    <div class="rec__track" data-rec-track>
+      <div class="rec__set" data-rec-set>
+        {records.map((r, i) => (
+          <button type="button" class="rcard" data-record-card data-sound-card data-category={r.category} data-index={i}>
+            <span class="rcard__media" aria-hidden="true">
+              <img class="rcard__img" src={r.image} alt="" width="304" height="405" loading="lazy" decoding="async" draggable="false" />
+              <canvas class="rcard__ascii" data-ascii={r.image}></canvas>
+            </span>
+            <span class="rcard__text">
+              <span class="numeric rcard__value">{r.value}</span>
+              <span class="heading rcard__unit">{r.unit}</span>
+              <span class="rcard__desc" aria-hidden="true" data-desc>
+                <span class="label-sm rcard__short" data-short>{r.short.split('\n').map((l) => <span class="rcard__line">{l}</span>)}</span>
+                <span class="label-sm rcard__full" data-full>{r.description}</span>
+              </span>
+              <span class="sr-only">{r.description}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+    {['left', 'right'].map((side) => (
+      <div class={`rec__edge rec__edge--${side}`} aria-hidden="true">
+        {BLUR.map((b, i) => (
+          <div class:list={['rec__blur', i < BLUR.length - 2 && 'rec__blur--fine']}
+            style={`backdrop-filter:blur(${b.blur}px);-webkit-backdrop-filter:blur(${b.blur}px);-webkit-mask-image:linear-gradient(to ${side}, transparent ${b.stop}%, black ${Math.min(b.stop + 24, 100)}%);mask-image:linear-gradient(to ${side}, transparent ${b.stop}%, black ${Math.min(b.stop + 24, 100)}%)`}></div>
+        ))}
+      </div>
+    ))}
+  </div>
+
+  <nav aria-label="Record categories" class="rec__tabs">
+    {categories.map((c, i) => (
+      <button type="button" class="heading rec__tab" data-tab={c} aria-pressed={i === 0 ? 'true' : 'false'}>
+        {c}<span class="rec__tab-line" aria-hidden="true"></span>
+      </button>
+    ))}
+  </nav>
+</section>
+
+<script>
+  window.vDefer(async () => {
+    const { gsap } = await import('@valtier/ds/motion/gsap');
+    const { isPhone, prefersReducedMotion, hasHover, pageX, CONTENT_MAX } = await import('@valtier/ds/motion/env');
+    const { initAllDotReveals } = await import('@valtier/ds/motion/dot-reveal');
+    const { sound } = await import('@valtier/ds/motion/sound');
+    const { initSnapRail } = await import('@valtier/ds/motion/snap-rail');
+    const { whenNear } = await import('@valtier/ds/motion/inview');
+    await window.vIdle();
+
+    /* ---------------- ASCII image -------------------------------------------- */
+    const RAMP = ' .:1742359608';
+    const CELL = 6;
+    let monoFamily = '';
+    function asciiCanvas(canvas: HTMLCanvasElement, src: string, w: number, h: number) {
+      const cols = Math.max(1, Math.ceil(w / CELL)), rows = Math.max(1, Math.ceil(h / CELL)), n = cols * rows;
+      let target = { enter: 0, reveal: 0 }, cur = { enter: 0, reveal: 0 }, raf = 0, ready = false;
+      let paint: (e: number, r: number) => void = () => {};
+      const tick = () => {
+        let moving = false;
+        const de = target.enter - cur.enter;
+        if (Math.abs(de) > 0.0015) { cur.enter += 0.085 * de; moving = true; } else cur.enter = target.enter;
+        const dr = target.reveal - cur.reveal;
+        if (Math.abs(dr) > 0.0015) { cur.reveal += 0.15 * dr; moving = true; } else cur.reveal = target.reveal;
+        paint(cur.enter, cur.reveal);
+        raf = moving ? requestAnimationFrame(tick) : 0;
+      };
+      const kick = () => { if (ready && !raf) raf = requestAnimationFrame(tick); };
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = src;
+      img.onload = () => {
+        const off = document.createElement('canvas');
+        off.width = cols; off.height = rows;
+        const o = off.getContext('2d', { willReadFrequently: true });
+        if (!o) return;
+        const k = Math.max(cols / img.width, rows / img.height), dw = img.width * k, dh = img.height * k;
+        o.drawImage(img, (cols - dw) / 2, (rows - dh) / 2, dw, dh);
+        let px: Uint8ClampedArray;
+        try { px = o.getImageData(0, 0, cols, rows).data; } catch { return; }
+        const ch = new Uint8Array(n), cr = new Uint8Array(n), cg = new Uint8Array(n), cb = new Uint8Array(n);
+        const enterAt = new Float32Array(n), clearAt = new Float32Array(n), on = new Uint8Array(n);
+        for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+          const i = y * cols + x, p = i * 4;
+          const L = (0.299 * px[p] + 0.587 * px[p + 1] + 0.114 * px[p + 2]) / 255;
+          ch[i] = Math.min(RAMP.length - 1, Math.round(L * (RAMP.length - 1)));
+          const base = Math.round(70 + 178 * L), tint = (1 - L) * 0.18;
+          cr[i] = Math.round(base + (120 - base) * tint * 0.5);
+          cg[i] = Math.round(base + (96 - base) * tint);
+          cb[i] = Math.round(base + (156 - base) * tint);
+          const diag = (x / cols) * 0.82 + (y / rows) * 0.18;
+          enterAt[i] = 0.02 + 0.98 * Math.min(1, 0.85 * diag + 0.15 * Math.random());
+          clearAt[i] = 0.02 + 0.98 * Math.min(1, (Math.hypot(x / cols - 0.5, y / rows - 0.5) / 0.71) * 0.6 + 0.4 * Math.random());
+        }
+        const dpr = (devicePixelRatio || 1) >= 1.5 ? 2 : 1;
+        canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+        const c = canvas.getContext('2d');
+        if (!c) return;
+        if (!monoFamily) monoFamily = getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim() || 'ui-monospace, monospace';
+        const font = `500 7px ${monoFamily}`;
+        paint = (e, r) => {
+          c.setTransform(dpr, 0, 0, dpr, 0, 0);
+          c.font = font;
+          c.textBaseline = 'top';
+          for (let i = 0; i < n; i++) {
+            const v = +(enterAt[i] <= e && clearAt[i] > r);
+            if (v === on[i]) continue;
+            const x = (i % cols) * CELL, y = ((i / cols) | 0) * CELL;
+            if (v) {
+              c.fillStyle = '#141019';
+              c.fillRect(x, y, CELL, CELL);
+              const g = RAMP[ch[i]];
+              if (g !== ' ') { c.fillStyle = `rgb(${cr[i]}, ${cg[i]}, ${cb[i]})`; c.fillText(g, x, y); }
+            } else c.clearRect(x, y, CELL, CELL);
+            on[i] = v;
+          }
+        };
+        ready = true;
+        if (prefersReducedMotion()) { cur.enter = target.enter = 1; paint(1, cur.reveal = target.reveal); return; }
+        kick();
+      };
+      return {
+        enter: () => { target.enter = 1; kick(); },
+        reveal: (v: boolean) => { target.reveal = v ? 1 : 0; if (prefersReducedMotion()) cur.reveal = target.reveal; kick(); },
+      };
+    }
+
+    /* ---------------- Section ------------------------------------------------- */
+    const section = document.querySelector<HTMLElement>('[data-records]');
+    if (section) whenNear(section, () => window.vDefer(() => init(section)));
+    function init(root: HTMLElement) {
+      initAllDotReveals(root);
+      const stage = root.querySelector<HTMLElement>('[data-rec-stage]')!;
+      const track = root.querySelector<HTMLElement>('[data-rec-track]')!;
+      const set = root.querySelector<HTMLElement>('[data-rec-set]')!;
+      const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-tab]'));
+      const phone = isPhone();
+      const reduced = prefersReducedMotion();
+      const count = set.children.length;
+      let lit = 'fastest';
+      const setLit = (cat: string) => {
+        lit = cat;
+        tabs.forEach((t) => t.setAttribute('aria-pressed', String(t.dataset.tab === cat)));
+      };
+      const catIndex = (cat: string) => Array.from(set.children).findIndex((c) => (c as HTMLElement).dataset.category === cat);
+
+      // Short <-> full description swap with height tween (desktop hover/focus).
+      const descs = new WeakMap<HTMLElement, { s: number; f: number }>();
+      const measureDesc = (card: HTMLElement) => {
+        const box = card.querySelector<HTMLElement>('[data-desc]')!;
+        const s = card.querySelector<HTMLElement>('[data-short]')!.offsetHeight;
+        const f = card.querySelector<HTMLElement>('[data-full]')!.offsetHeight;
+        descs.set(card, { s, f });
+        box.style.height = `${card.classList.contains('is-active') ? f : s}px`;
+      };
+      const showDesc = (card: HTMLElement, full: boolean) => {
+        const box = card.querySelector<HTMLElement>('[data-desc]')!;
+        const sh = card.querySelector<HTMLElement>('[data-short]')!;
+        const fu = card.querySelector<HTMLElement>('[data-full]')!;
+        const m = descs.get(card) ?? { s: sh.offsetHeight, f: fu.offsetHeight };
+        gsap.killTweensOf([box, sh, fu]);
+        if (reduced) { gsap.set(box, { height: full ? m.f : m.s }); gsap.set(sh, { autoAlpha: +!full }); gsap.set(fu, { autoAlpha: +full }); return; }
+        gsap.to(box, { height: full ? m.f : m.s, duration: 0.42, ease: 'power3.inOut', overwrite: true });
+        gsap.to(full ? sh : fu, { autoAlpha: 0, duration: 0.16, ease: 'power2.in', overwrite: true });
+        gsap.to(full ? fu : sh, { autoAlpha: 1, duration: 0.3, delay: 0.1, ease: 'power2.out', overwrite: true });
+      };
+
+      const asciis = new Map<HTMLElement, ReturnType<typeof asciiCanvas>>();
+      const ensureAscii = (card: HTMLElement) => {
+        let a = asciis.get(card);
+        if (a) return a;
+        const cv = card.querySelector<HTMLCanvasElement>('[data-ascii]');
+        if (!cv) return null;
+        const r = cv.getBoundingClientRect();
+        a = asciiCanvas(cv, cv.dataset.ascii!, Math.round(r.width) || 304, Math.round(r.height) || 405);
+        asciis.set(card, a);
+        return a;
+      };
+
+      if (phone) {
+        /* -------- phones: native snap rail -------- */
+        stage.classList.add('is-rail');
+        set.tabIndex = 0;
+        let byTab = false;
+        const rail = initSnapRail(set, {
+          hideInactive: true,
+          onActive: (i) => {
+            Array.from(set.children).forEach((c, j) => {
+              const card = c as HTMLElement;
+              if (Math.abs(j - i) <= 2) ensureAscii(card)?.enter();
+              ensureAscii(card)?.reveal(j === i);
+            });
+            const cat = (set.children[i] as HTMLElement)?.dataset.category;
+            if (cat && !byTab) setLit(cat);
+          },
+        });
+        set.addEventListener('pointerdown', () => (byTab = false));
+        tabs.forEach((t) => t.addEventListener('click', () => {
+          sound.tab(0.85);
+          byTab = true;
+          setLit(t.dataset.tab!);
+          rail.goTo(Math.max(0, catIndex(t.dataset.tab!)));
+        }));
+      } else {
+        /* -------- desktop: drifting 3D belt -------- */
+        const clone = set.cloneNode(true) as HTMLElement;
+        clone.setAttribute('aria-hidden', 'true');
+        clone.querySelectorAll('button').forEach((b) => (b.tabIndex = -1));
+        track.append(clone);
+        const cards = Array.from(track.querySelectorAll<HTMLElement>('[data-record-card]'));
+        const s = { offset: 0, vel: 0.35, boost: 0, scrollBoost: 0, dir: 1, lastY: scrollY, dragging: false, jumping: false, lastX: 0, hold: 0, dragDist: 0, cardW: 304, spacing: 332, half: 332 * count };
+        let stageW = 0, baseLeft = 0, vw = innerWidth, measured = false, visible = true, raf = 0;
+        const tilted = new Array(cards.length).fill(false);
+        const wrap = () => { if (s.offset > 0) s.offset -= s.half; else if (s.offset <= -s.half) s.offset += s.half; };
+        const measure = () => {
+          vw = innerWidth;
+          stageW = stage.clientWidth;
+          baseLeft = track.getBoundingClientRect().left - s.offset;
+          const [a, b] = [track.children[0], track.children[1]];
+          const half = a && b ? b.getBoundingClientRect().left - a.getBoundingClientRect().left : 0;
+          if (a && half > 0) {
+            const spacing = half / count;
+            const cardW = spacing - (parseFloat(getComputedStyle(a).columnGap) || 0);
+            if (measured && Math.abs(spacing - s.spacing) > 0.01) {
+              const centreX = vw / 2 - baseLeft;
+              const idx = (centreX - s.offset - s.cardW / 2) / s.spacing;
+              s.offset = centreX - cardW / 2 - idx * spacing;
+              while (s.offset > 0) s.offset -= half;
+              while (s.offset <= -half) s.offset += half;
+            }
+            s.spacing = spacing; s.half = half; s.cardW = cardW;
+          }
+          measured = true;
+          cards.forEach(measureDesc);
+        };
+        const tilt = (x: number, k: number) => {
+          const a = x < -1.15 ? -1.15 : x > 1.15 ? 1.15 : x, a2 = a * a;
+          return `perspective(${(1200 * k).toFixed(1)}px) translateX(${(-48 * k * a * Math.abs(a)).toFixed(1)}px) translateY(${(20 * k * a2).toFixed(1)}px) translateZ(${(-210 * k * a2).toFixed(1)}px) rotateY(${(16 * a).toFixed(2)}deg) rotateZ(${(1.1 * a).toFixed(2)}deg)`;
+        };
+        const paint = () => {
+          track.style.transform = `translate3d(${s.offset}px,0,0)`;
+          if (!reduced && vw >= 900) {
+            const c = vw / 2, k = s.cardW / 304;
+            for (let i = 0; i < cards.length; i++) {
+              const copy = i < count ? 0 : 1, idx = i - copy * count;
+              const d = baseLeft + s.offset + copy * s.half + idx * s.spacing + s.cardW / 2 - c;
+              if (d > c + s.spacing || d < -c - s.spacing) {
+                if (tilted[i]) { cards[i].style.transform = ''; cards[i].style.zIndex = ''; tilted[i] = false; }
+                continue;
+              }
+              cards[i].style.transform = tilt(d / c, k);
+              cards[i].style.zIndex = String(100 - Math.round(50 * Math.abs(d / c)));
+              tilted[i] = true;
+            }
+          }
+          if (s.hold > 0) return;
+          const centre = Math.round((stageW / 2 - s.offset - s.cardW / 2) / s.spacing);
+          const cat = (cards[((centre % count) + count) % count] as HTMLElement).dataset.category!;
+          if (cat !== lit) setLit(cat);
+        };
+        const loop = () => {
+          if (s.hold > 0) s.hold--;
+          const y = scrollY, dy = y - s.lastY;
+          s.lastY = y;
+          if (dy < -0.5) s.dir = 1; else if (dy > 0.5) s.dir = -1;
+          const target = Math.min(0.08 * Math.abs(dy), 2.4);
+          s.scrollBoost += (target - s.scrollBoost) * 0.08;
+          if (visible && !reduced && !s.dragging && !s.jumping) {
+            s.vel += (0.35 * s.dir - s.vel) * 0.05;
+            s.boost *= 0.92;
+            if (Math.abs(s.boost) < 0.01) s.boost = 0;
+            s.offset += s.vel + s.dir * s.scrollBoost + s.boost;
+            wrap();
+            paint();
+          }
+          raf = requestAnimationFrame(loop);
+        };
+        const onMove = (e: PointerEvent) => {
+          const dx = e.clientX - s.lastX;
+          s.lastX = e.clientX;
+          s.offset += dx;
+          if (Math.abs(dx) > 6) sound.tick(Math.min(1, Math.abs(dx) / 28));
+          s.boost = dx;
+          s.dragDist += Math.abs(dx);
+          if (dx < -0.4) s.dir = -1; else if (dx > 0.4) s.dir = 1;
+          wrap();
+          paint();
+        };
+        const onUp = () => {
+          s.dragging = false;
+          track.style.cursor = 'grab';
+          removeEventListener('pointermove', onMove);
+          removeEventListener('pointerup', onUp);
+          removeEventListener('pointercancel', onUp);
+        };
+        track.style.cursor = 'grab';
+        track.addEventListener('pointerdown', (e) => {
+          gsap.killTweensOf(s);
+          s.dragging = true; s.jumping = false; s.hold = 0; s.lastX = e.clientX; s.boost = 0; s.dragDist = 0;
+          track.style.cursor = 'grabbing';
+          addEventListener('pointermove', onMove);
+          addEventListener('pointerup', onUp);
+          addEventListener('pointercancel', onUp);
+        });
+
+        // Hover / focus: photo replaces ASCII, short text expands to the full line.
+        const touch = !hasHover();
+        cards.forEach((card) => {
+          const on = () => { card.classList.add('is-active'); ensureAscii(card)?.reveal(true); showDesc(card, true); };
+          const off = () => { card.classList.remove('is-active'); ensureAscii(card)?.reveal(false); showDesc(card, false); };
+          if (!touch) {
+            card.addEventListener('mouseenter', on);
+            card.addEventListener('mouseleave', off);
+            card.addEventListener('focus', on);
+            card.addEventListener('blur', off);
+          } else {
+            card.addEventListener('click', () => {
+              if (s.dragDist > 6) return;
+              card.classList.contains('is-active') ? off() : (cards.forEach((c) => c !== card && c.classList.contains('is-active') && (c.classList.remove('is-active'), ensureAscii(c)?.reveal(false), showDesc(c, false))), on());
+            });
+          }
+        });
+
+        // ASCII "enter" plays once a card comes near the viewport.
+        const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+          if (!e.isIntersecting) return;
+          ensureAscii(e.target as HTMLElement)?.enter();
+          io.unobserve(e.target);
+        }), { rootMargin: '0px 15% 0px 15%' });
+        cards.forEach((c) => io.observe(c));
+
+        // Category jump: tween the belt so the first card of the category lands left-of-centre.
+        tabs.forEach((t) => t.addEventListener('click', () => {
+          sound.tab(0.85);
+          const cat = t.dataset.tab!;
+          const w = stage.clientWidth;
+          const lead = pageX(w) + Math.max(24, Math.min(60, 0.04 * Math.min(w, CONTENT_MAX)));
+          const first = Math.max(0, catIndex(cat));
+          let run = 1;
+          while ((set.children[first + run] as HTMLElement | undefined)?.dataset.category === cat) run++;
+          const span = Math.max(s.cardW / 2, (run - 1) * s.spacing);
+          let to = -(first * s.spacing) + Math.max(lead, w / 2 - span);
+          while (to - s.offset > s.half / 2) to -= s.half;
+          while (to - s.offset < -s.half / 2) to += s.half;
+          while (to > 0) to -= s.half;
+          setLit(cat);
+          s.jumping = true; s.hold = 120;
+          gsap.killTweensOf(s);
+          gsap.to(s, {
+            offset: to, duration: reduced ? 0 : 0.9, ease: 'power3.inOut', onUpdate: paint,
+            onComplete: () => { s.jumping = false; s.vel = 0.35 * s.dir; s.boost = 0; s.scrollBoost = 0; },
+          });
+        }));
+
+        new ResizeObserver(() => { measure(); paint(); }).observe(stage);
+        document.fonts?.ready.then(() => { measure(); paint(); });
+        new IntersectionObserver(([e]) => (visible = !!e?.isIntersecting), { rootMargin: '25% 0px' }).observe(stage);
+        measure();
+        paint();
+        raf = requestAnimationFrame(loop);
+      }
+    }
+  });
+</script>
+
+<style>
+  .rec { position: relative; overflow: hidden; padding: 4rem 0 2.5rem; }
+  .rec__head { margin-inline: auto; max-width: 1240px; padding-inline: var(--gutter); }
+  .rec__title { text-align: center; font-size: 22vw; color: var(--color-bone); }
+  .rec__stage { position: relative; margin-top: 4rem; touch-action: pan-y; filter: blur(0); }
+  .rec__track { display: flex; width: max-content; gap: min(28px, calc(3.5 * var(--of-vh))); user-select: none; will-change: transform; }
+  .rec__set { display: flex; flex-shrink: 0; gap: min(28px, calc(3.5 * var(--of-vh))); }
+
+  .rcard {
+    --card-w: min(304px, calc(38 * var(--of-vh)));
+    --card-h: min(540px, calc(67.5 * var(--of-vh)));
+    --media-h: min(405px, calc(50.625 * var(--of-vh)));
+    --pad: min(28px, calc(3.5 * var(--of-vh)));
+    position: relative; display: block; flex-shrink: 0; overflow: hidden; text-align: center; cursor: inherit;
+    width: var(--card-w); height: var(--card-h); border-radius: var(--radius-2xl);
+    background: var(--color-card); border: 1px solid var(--fg-06);
+  }
+  .rcard__media {
+    position: absolute; inset: 0 0 auto; height: var(--media-h); background: var(--color-card-photo);
+    -webkit-mask-image: linear-gradient(to bottom, black 45%, transparent 96%); mask-image: linear-gradient(to bottom, black 45%, transparent 96%);
+  }
+  .rcard__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.3s; }
+  .rcard.is-active .rcard__img { opacity: 1; }
+  .rcard__ascii { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .rcard__text { position: absolute; inset-inline: 0; bottom: var(--pad); padding-inline: var(--pad); }
+  .rcard__value { display: block; font-size: min(84px, calc(10.5 * var(--of-vh))); color: var(--color-bone); }
+  .rcard__unit { display: block; margin-top: 0.625rem; font-size: min(24px, calc(3 * var(--of-vh))); color: var(--color-bone); }
+  .rcard__desc { position: relative; display: block; margin: 1rem auto 0; overflow: hidden; }
+  .rcard__short, .rcard__full { display: block; line-height: 1.625; color: var(--fg-muted); }
+  .rcard__line { display: block; }
+  .rcard__full { position: absolute; inset: 0 0 auto; visibility: hidden; opacity: 0; }
+
+  .rec__edge { pointer-events: none; position: absolute; top: 0; bottom: 0; z-index: 10; width: clamp(110px, 20vw, 440px); }
+  .rec__edge--left { left: 0; }
+  .rec__edge--right { right: 0; }
+  .rec__blur { position: absolute; inset: 0; }
+  @media (hover: none) { .rec__blur--fine { display: none; } }
+
+  .rec__tabs { margin-top: 2.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.25rem 0.5rem; padding-inline: var(--gutter); }
+  .rec__tab {
+    position: relative; display: flex; min-height: 2.75rem; align-items: center; padding-inline: 0.375rem;
+    font-size: 1rem; text-transform: capitalize; color: var(--fg-muted); transition: color 0.3s;
+  }
+  .rec__tab:hover { color: var(--fg-85); }
+  .rec__tab[aria-pressed='true'] { color: var(--color-bone); }
+  .rec__tab-line { position: absolute; bottom: -0.125rem; left: 50%; height: 1px; width: 2.25rem; translate: -50% 0; background: var(--color-bone); opacity: 0; transition: opacity 0.3s; }
+  .rec__tab[aria-pressed='true'] .rec__tab-line { opacity: 1; }
+
+  @media (min-width: 768px) {
+    .rec { padding: min(144px, calc(10 * var(--vu))) 0 3rem; }
+    .rec__title { font-size: clamp(48px, calc(8 * var(--vu)), 118px); }
+    .rec__stage { margin-top: min(80px, calc(var(--vu) * 80 / 14.4)); }
+    .rec__tabs { margin-top: min(56px, calc(var(--vu) * 56 / 14.4)); gap: 0.5rem 2.5rem; }
+    .rec__tab { padding-inline: 0; font-size: 1.5rem; }
+  }
+
+  /* Phones: snap rail, full descriptions, centred card emphasised. */
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
+    .rec__stage { margin-top: 2rem; filter: none; }
+    .rec__edge { display: none; }
+    .rec__track { width: auto; display: block; }
+    .rec__set {
+      gap: 18px; padding-inline: 24px; scroll-padding-inline: 24px; overflow-x: auto; overflow-y: hidden;
+      scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none;
+    }
+    .rec__set::-webkit-scrollbar { display: none; }
+    .rcard {
+      --card-w: clamp(200px, 31.05lvh, 262px); --card-h: clamp(359px, 55.69lvh, 470px); --media-h: var(--card-w);
+      scroll-snap-align: center; transition: opacity 550ms var(--ease-reveal);
+    }
+    .is-rail .rcard:not([aria-current='true']) { opacity: 0.7; }
+    .rcard__img { opacity: 1; }
+    .rcard__text {
+      bottom: clamp(17px, 2.61lvh, 22px); padding-inline: clamp(15px, 2.37lvh, 20px);
+      transition: opacity 550ms var(--ease-reveal), transform 550ms var(--ease-reveal);
+    }
+    .is-rail .rcard:not([aria-current='true']) .rcard__text { opacity: 0.3; transform: translateY(10px); }
+    .rcard__value { font-size: clamp(47px, 7.35lvh, 62px); }
+    .rcard__unit { font-size: clamp(15px, 2.37lvh, 20px); }
+    .rcard__short { display: none; }
+    .rcard__full { position: static; visibility: visible; opacity: 1; }
+    .rcard__desc { height: auto !important; }
+  }
+</style>

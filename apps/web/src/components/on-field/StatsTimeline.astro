@@ -1,0 +1,217 @@
+---
+import { timeline, statsLabels, flyers } from '../../content/on-field';
+const N = timeline.years.length - 1;
+const fmt = (n: number, d = 0) => n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+---
+<div class="stats" data-section="on-stats" data-tone="dark" data-stats-pin data-timeline={JSON.stringify(timeline)}>
+  <div class="stats__pane" data-stats-pane>
+    <div class="stats__catch stats__ball" data-catch="ball" aria-hidden="true">
+      <img src={flyers.football.src} alt="" width={flyers.football.width} height={flyers.football.height} loading="lazy" decoding="async" />
+    </div>
+    <div class="stats__catch stats__gloves" data-catch="gloves" aria-hidden="true">
+      <img src={flyers.gloves.src} alt="" width={flyers.gloves.width} height={flyers.gloves.height} loading="lazy" decoding="async" />
+    </div>
+    <div class="stats__park" data-stats-park>
+      <div class="stats__grid">
+        {statsLabels.map((s) => (
+          <div class="stats__cell">
+            <span class="label stats__label">{s.label}</span>
+            <span class="numeric stats__value" data-stat={s.key} data-decimals={'decimals' in s ? s.decimals : 0}>
+              {fmt((timeline as any)[s.key][N], 'decimals' in s ? s.decimals : 0)}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div class="stats__axis" data-axis>
+        <div class="stats__years">
+          {timeline.years.map((y, i) => (
+            <span class="stats__year-wrap" style={i === N ? 'flex:0 0 auto' : 'flex:1 1 0%'}>
+              <span class="label-sm stats__year" data-year>{y}</span>
+              {i < N && <span class="stats__tick" aria-hidden="true"></span>}
+            </span>
+          ))}
+        </div>
+        <div class="stats__cursor" data-axis-cursor aria-hidden="true"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.vDefer(async () => {
+    const { gsap, ScrollTrigger } = await import('@valtier/ds/motion/gsap');
+    const { isPhone, prefersReducedMotion, fmt } = await import('@valtier/ds/motion/env');
+    const { revealOnce } = await import('@valtier/ds/motion/inview');
+    const { setScrollScale } = await import('@valtier/ds/motion/scroll');
+    await window.vIdle();
+
+    const section = document.querySelector<HTMLElement>('[data-stats-pin]');
+    if (section) window.vDefer(() => init(section));
+    function init(root: HTMLElement) {
+      const data = JSON.parse(root.dataset.timeline || '{}') as Record<string, number[]>;
+      const years = data.years;
+      const N = years.length - 1;
+      const axis = root.querySelector<HTMLElement>('[data-axis]')!;
+      const cursor = root.querySelector<HTMLElement>('[data-axis-cursor]')!;
+      const park = root.querySelector<HTMLElement>('[data-stats-park]')!;
+      const ball = root.querySelector<HTMLElement>('[data-catch="ball"]');
+      const gloves = root.querySelector<HTMLElement>('[data-catch="gloves"]');
+      const values = Array.from(root.querySelectorAll<HTMLElement>('[data-stat]'));
+      const labels = Array.from(root.querySelectorAll<HTMLElement>('[data-year]'));
+      const reduced = prefersReducedMotion();
+      const phone = isPhone();
+
+      // Section geometry, in % of section height: pin point, settle window, flight window.
+      const geo = (hvh: number) => {
+        const pinP = 100 / hvh, settleW = 30.8 / hvh;
+        return { pinP, settleW, flightStart: pinP + settleW, flightEnd: 1 - settleW };
+      };
+      let hVh = 260, G = geo(hVh), centres: number[] = [], prog = 0, pinProg = 0;
+      const measure = () => {
+        centres = labels.map((l) => l.offsetLeft + l.offsetWidth / 2);
+        const vh = innerHeight;
+        if (vh > 0 && root.offsetHeight > 0) G = geo((hVh = (root.offsetHeight / vh) * 100));
+      };
+
+      const render = (e: number) => {
+        prog = e;
+        const a = Math.max(0, (e - 0.08) / 0.92) * N;
+        const r = Math.min(Math.floor(a), N - 1);
+        const s = a - r;
+        values.forEach((el) => {
+          const arr = data[el.dataset.stat!];
+          el.textContent = fmt(arr[r] + (arr[r + 1] - arr[r]) * s, +(el.dataset.decimals || 0));
+        });
+        const o = centres[r], c = centres[r + 1];
+        if (o !== undefined && c !== undefined) {
+          const x = e < 0.08 ? centres[0] - 56 * (1 - e / 0.08) : o + (c - o) * s;
+          cursor.style.transform = `translate3d(${x}px,0,0)`;
+        }
+        cursor.style.opacity = phone ? '1' : String(Math.max(0, Math.min(1, (1 - e) / 0.06)));
+        labels.forEach((l, i) => (l.style.opacity = e >= 0.08 && i <= a + 0.001 ? '1' : '0.52'));
+        if (ball && gloves && !phone) {
+          const f = Math.max(0, Math.min(1, (e - G.flightStart) / (G.flightEnd - G.flightStart)));
+          ball.style.transform = `translate3d(calc(${-14 + 52 * f} * var(--page-w) / 100), ${78 - 200 * f}vh, 0) rotate(${-10 + 14 * f}deg)`;
+          gloves.style.transform = `translate3d(calc(${5 - 16 * f} * var(--page-w) / 100), ${106 - 260 * f}vh, 0) rotate(${4 - 6 * f}deg)`;
+        }
+      };
+      const settle = (e: number) => {
+        if (phone) return void (park.style.transform = '');
+        let y = 0;
+        if (!reduced) {
+          if (e < G.pinP) y = 15;
+          else if (e < G.pinP + G.settleW) {
+            const t = 1 - (e - G.pinP) / G.settleW;
+            y = 15 * t * t;
+          }
+        }
+        park.style.transform = `translate3d(0, ${y}vh, 0)`;
+      };
+      ScrollTrigger.addEventListener('refresh', () => { measure(); render(prog); settle(pinProg); });
+      measure();
+
+      if (reduced) {
+        render(1);
+        settle(1);
+      } else {
+        render(0);
+        settle(0);
+        const st = { p: 0 };
+        if (phone) {
+          // Phones: plays once (1.8s) when the block is 70% up, then the axis is scrubbable by touch.
+          const tw = gsap.to(st, { p: 1, duration: 1.8, ease: 'power2.out', paused: true, onUpdate: () => render(st.p) });
+          let started = false;
+          revealOnce(root, 0.7, () => { started = true; tw.play(); });
+          axis.style.touchAction = 'pan-y';
+          const toP = (i: number) => 0.08 + (i / N) * 0.92;
+          const fromX = (clientX: number) => {
+            const x = clientX - axis.getBoundingClientRect().left;
+            const first = centres[0] ?? 0, last = centres[N] ?? first;
+            if (x <= first) return toP(0);
+            if (x >= last) return toP(N);
+            for (let i = 0; i < N; i++) {
+              const a = centres[i], b = centres[i + 1];
+              if (x >= a && x < b) return toP(i + (b > a ? (x - a) / (b - a) : 0));
+            }
+            return toP(N);
+          };
+          let snapTw: gsap.core.Tween | null = null, down = false, moved = false, sx = 0;
+          axis.addEventListener('pointerdown', (e) => {
+            if (!e.isPrimary) return;
+            started = true; tw.kill(); snapTw?.kill(); down = true; moved = false; sx = e.clientX;
+            try { axis.setPointerCapture(e.pointerId); } catch {}
+          });
+          axis.addEventListener('pointermove', (e) => {
+            if (!down || (!moved && Math.abs(e.clientX - sx) < 3)) return;
+            moved = true;
+            st.p = fromX(e.clientX);
+            render(st.p);
+          });
+          const up = (e: PointerEvent) => {
+            if (!down) return;
+            down = false;
+            const target = toP(Math.round(Math.max(0, ((moved ? st.p : fromX(e.clientX)) - 0.08) / 0.92) * N));
+            snapTw = gsap.to(st, { p: target, duration: moved ? 0.35 : 0.6, ease: 'power2.out', onUpdate: () => render(st.p) });
+          };
+          axis.addEventListener('pointerup', up);
+          axis.addEventListener('pointercancel', up);
+        } else {
+          const tween = gsap.to(st, { p: 1, ease: 'none', onUpdate: () => render(st.p) });
+          ScrollTrigger.create({
+            trigger: root, start: 'top bottom', end: 'bottom bottom', scrub: 1.1, animation: tween,
+            onUpdate: (s) => { pinProg = s.progress; settle(s.progress); },
+          });
+          const px = (f: number) => (f * hVh * innerHeight) / 100;
+          ScrollTrigger.create({
+            trigger: root,
+            start: () => `top bottom-=${px(G.flightStart)}`,
+            end: () => `top bottom-=${px(G.flightEnd)}`,
+            onToggle: (s) => setScrollScale(s.isActive ? 0.8 : 1),
+          });
+        }
+      }
+    }
+  });
+</script>
+
+<style>
+  .stats { position: relative; overflow-x: clip; }
+  .stats__pane { display: flex; flex-direction: column; align-items: center; justify-content: center; overflow-x: clip; padding: 4rem var(--gutter); }
+  .stats__catch { pointer-events: none; position: absolute; z-index: 20; will-change: transform; display: none; }
+  .stats__catch img { width: 100%; height: auto; }
+  .stats__ball { left: calc(-0.09 * var(--page-w)); top: 45%; width: 52vw; transform: translate3d(calc(-0.14 * var(--page-w)), 88vh, 0) rotate(-10deg); }
+  .stats__gloves { right: calc(-0.16 * var(--page-w)); top: 30%; width: 72vw; transform: translate3d(calc(0.05 * var(--page-w)), 106vh, 0) rotate(4deg); }
+  .stats__park { display: flex; width: 100%; flex-direction: column; align-items: center; will-change: transform; }
+  .stats__grid { display: grid; width: 100%; max-width: clamp(340px, calc(0.76 * var(--page-w)), 1800px); grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3rem 1.5rem; }
+  .stats__cell { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; text-align: center; }
+  .stats__label { color: var(--fg-muted); }
+  .stats__value { font-size: clamp(56px, calc(8.2 * var(--vu)), 210px); color: var(--color-bone); }
+  .stats__axis { position: relative; margin-top: 1.75rem; padding-top: 2.25rem; width: 100%; max-width: clamp(340px, calc(0.76 * var(--page-w)), 1800px); isolation: isolate; }
+  .stats__years { display: flex; align-items: center; justify-content: space-between; }
+  .stats__year-wrap { display: flex; align-items: center; }
+  .stats__year { position: relative; z-index: 1; color: var(--color-bone); opacity: 0.52; transition: opacity 0.3s; font-size: clamp(12px, 2.9vw, 13px); letter-spacing: 0.02em; }
+  .stats__tick { margin-inline: auto; height: 18px; width: 1px; background: rgba(244, 239, 230, 0.18); }
+  .stats__cursor {
+    position: absolute; top: 2rem; left: 0; z-index: 0; height: 26px; width: 3px; margin-left: -1.5px;
+    translate: -50% 0; background: var(--color-purple-rich); will-change: transform;
+  }
+  @media (min-width: 768px) {
+    .stats { margin-top: calc(-1 * min(calc(55 * var(--of-vh)), calc(0.34375 * var(--page-w)))); height: 260vh; }
+    .stats__pane { position: sticky; top: 0; height: 100svh; padding-block: 0; --vu: var(--vu-fit); }
+    .stats__catch { display: block; }
+    .stats__ball { width: calc(38 * var(--vu)); min-width: 300px; }
+    .stats__gloves { width: calc(55 * var(--vu)); min-width: 420px; }
+    .stats__park { transform: translate3d(0, 15vh, 0); }
+    .stats__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .stats__axis { margin-top: min(96px, calc(var(--vu) * 96 / 14.4)); padding-top: 0; isolation: auto; }
+    .stats__year { font-size: clamp(11px, 1.9vw, 13px); letter-spacing: 0.1em; }
+    .stats__cursor { top: -0.25rem; background: var(--color-bone); }
+  }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) { .stats__catch { display: none !important; } }
+  @media (min-width: 768px) and (max-width: 900px) and (pointer: coarse) {
+    .stats { height: auto; }
+    .stats__pane { height: max(100svh, var(--min-h)); --vu: inherit; }
+    .stats__park { transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .stats__catch { display: none; } }
+</style>

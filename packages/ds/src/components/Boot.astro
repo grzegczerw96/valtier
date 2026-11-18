@@ -1,0 +1,31 @@
+---
+/** Global runtime: smooth scroll + section tones. Include once per page. */
+interface Props { fallbackTheme?: string }
+const { fallbackTheme = 'tone-dark' } = Astro.props;
+---
+<div hidden data-boot data-fallback-theme={fallbackTheme}></div>
+<script>
+  window.vDefer(async () => {
+    const { initSmoothScroll } = await import('../motion/scroll');
+    const { initTones } = await import('../motion/tone');
+    const { onLayoutChange } = await import('../motion/env');
+    await window.vIdle();
+    const boot = document.querySelector<HTMLElement>('[data-boot]');
+    initTones(boot?.dataset.fallbackTheme);
+    initSmoothScroll();
+    // data-fade images: reveal once decoded (covers cached and lazy images alike).
+    const fade = (img: HTMLImageElement) => {
+      const done = () => img.classList.add('is-loaded');
+      img.complete && img.naturalWidth ? done() : img.addEventListener('load', done, { once: true });
+      img.addEventListener('error', done, { once: true });
+    };
+    document.querySelectorAll<HTMLImageElement>('img[data-fade]').forEach(fade);
+    // Phone and desktop builds of several sections differ structurally (snap rails vs
+    // drifting belts, pinned vs flowing). Crossing the breakpoint rebuilds the page.
+    let t = 0;
+    onLayoutChange(() => {
+      clearTimeout(t);
+      t = window.setTimeout(() => location.reload(), 250);
+    });
+  });
+</script>

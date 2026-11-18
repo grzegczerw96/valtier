@@ -1,0 +1,59 @@
+---
+/** Floating sound switch with a 4-bar equaliser that dances while sound is on. */
+---
+<button type="button" class="sound" data-sound-toggle aria-pressed="false" aria-label="Turn sound on" title="Sound off">
+  <span class="sound__bars" aria-hidden="true">
+    {[0, 1, 2, 3].map((i) => <span class="sound__bar" style={`animation-delay:${0.13 * i}s`}></span>)}
+  </span>
+</button>
+
+<script>
+  window.vDefer(async () => {
+    const { initSound, setSound, onSoundChange, isSoundOn, wireUiSounds, duck } = await import('../motion/sound');
+    await window.vIdle();
+    const btn = document.querySelector<HTMLButtonElement>('[data-sound-toggle]');
+    if (btn) {
+      onSoundChange((on) => {
+        btn.setAttribute('aria-pressed', String(on));
+        btn.setAttribute('aria-label', on ? 'Turn sound off' : 'Turn sound on');
+        btn.title = on ? 'Sound on' : 'Sound off';
+      });
+      btn.addEventListener('click', () => {
+        const on = !isSoundOn();
+        setSound(on, true);
+        if (!on) document.querySelectorAll('video').forEach((v) => !v.muted && v.pause());
+      });
+      initSound();
+      wireUiSounds();
+      // duck the ambient bed while any unmuted video plays
+      const playing = new Set<HTMLVideoElement>();
+      const check = (e: Event) => {
+        const v = e.target;
+        if (!(v instanceof HTMLVideoElement)) return;
+        const live = !v.muted && v.volume > 0 && !v.paused;
+        if (live && !playing.has(v)) { playing.add(v); duck(true); }
+        else if (!live && playing.has(v)) { playing.delete(v); duck(false); }
+      };
+      ['play', 'playing', 'pause', 'ended', 'volumechange', 'emptied'].forEach((t) => document.addEventListener(t, check, true));
+    }
+  });
+</script>
+
+<style is:global>
+  .sound {
+    position: fixed; z-index: var(--z-sound); bottom: 1.5rem; right: calc(var(--page-x) + 1.5rem);
+    display: flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem;
+    border-radius: var(--radius-pill); border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.25); color: var(--color-bone);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    transition: background-color 0.3s;
+  }
+  .sound:hover { background: rgba(0, 0, 0, 0.4); }
+  .sound__bars { display: flex; align-items: flex-end; gap: 2.5px; height: 0.875rem; }
+  .sound__bar { width: 2px; height: 35%; border-radius: var(--radius-pill); background: currentColor; transform-origin: bottom; opacity: 0.5; transition: height 0.3s; }
+  .sound[aria-pressed='true'] .sound__bar { opacity: 1; animation: v-sound-eq 0.85s ease-in-out infinite alternate; }
+  @keyframes v-sound-eq { 0% { height: 18%; } to { height: 95%; } }
+  @media (prefers-reduced-motion: reduce) {
+    .sound[aria-pressed='true'] .sound__bar { height: 60%; animation: none; }
+  }
+</style>
