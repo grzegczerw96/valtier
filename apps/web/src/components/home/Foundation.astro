@@ -1,0 +1,91 @@
+---
+/** Foundation: headline, an accordion gallery (hover a tile to open it to 4.2×
+ *  and bring back its colour) and the CTA row. On desktop it sits underneath the
+ *  pinned Partnerships stage and is uncovered by its slanted wipe; on phones it
+ *  follows the partnerships rail with a slanted top edge and becomes a snap rail. */
+import Button from '@valtier/ds/components/Button.astro';
+import { foundation } from '../../content/home';
+const n = foundation.gallery.length;
+const activePct = Math.ceil((4.2 / (4.2 + Math.max(n - 1, 0))) * 100);
+---
+<section class="fnd" data-section="foundation" data-tone="light" aria-labelledby="fnd-title">
+  <div class="fnd__texture" aria-hidden="true"><div></div></div>
+  <div class="fnd__inner">
+    <h2 id="fnd-title" class="display fnd__title"><span>{foundation.headline}</span></h2>
+    <div class="fnd__gallery">
+      <div class="fnd__tiles" data-fnd-tiles style={`--img-w:calc(${activePct} * var(--page-w) / 100)`}>
+        {foundation.gallery.map((g, i) => (
+          <a class="fnd__tile" href={foundation.cta.href} data-fnd-tile data-active={i === 0 ? '' : undefined} aria-label={g.alt}>
+            <img src={g.src} alt="" loading="lazy" decoding="async" />
+          </a>
+        ))}
+      </div>
+      <ul class="fnd__rail" data-fnd-rail>
+        {foundation.gallery.map((g, i) => (
+          <li class="fnd__rail-item" aria-current={i === 0 ? 'true' : 'false'}>
+            <a href={foundation.cta.href} aria-label={g.alt}><img src={g.src} alt="" loading="lazy" decoding="async" /></a>
+          </li>
+        ))}
+      </ul>
+    </div>
+    <div class="fnd__foot">
+      <div class="fnd__about">
+        <h3 class="heading heading-sm fnd__name">{foundation.name}</h3>
+        <p class="fnd__blurb">{foundation.blurb}</p>
+      </div>
+      <Button href={foundation.cta.href} variant="dark">{foundation.cta.label}</Button>
+    </div>
+  </div>
+</section>
+
+<style is:global>
+  .fnd {
+    --fnd-pane: var(--fnd-host-h, 100svh);
+    --fnd-u: calc(var(--fnd-pane) / 100);
+    --fnd-h: clamp(44px, calc(10 * var(--vu)), 180px);
+    position: relative; z-index: 11; display: flex; flex-direction: column; width: 100%; overflow: hidden;
+    background-color: var(--color-sand);
+    background-color: color-mix(in oklab, var(--color-sand), var(--color-ink-deep) calc(var(--fdp, 0) * 100%));
+    transition: background-color var(--footer-fade) var(--ease-editorial);
+    color: var(--color-ink-deep);
+  }
+  .fnd__texture { position: absolute; inset: 0; z-index: 0; pointer-events: none; clip-path: inset(0); mix-blend-mode: screen; opacity: calc(1 - var(--fdp, 0)); transition: opacity var(--footer-fade) var(--ease-editorial); }
+  .fnd__texture > div { position: fixed; inset: 0; background: url('/textures/pebble.webp') 0 0 / var(--pebble-tile) var(--pebble-tile) repeat; }
+  .fnd__inner { position: relative; z-index: 10; display: flex; flex: 1; min-height: 0; flex-direction: column; }
+  .fnd__title { color: var(--color-purple-deep); font-size: var(--fnd-h); line-height: .9; letter-spacing: -.02em; }
+  .fnd__title span { display: block; }
+  .fnd__gallery { margin-top: 1.5rem; flex: 1; min-height: 0; }
+  .fnd__tiles { display: none; height: 100%; min-height: min(280px, calc(25 * var(--fnd-u))); width: 100%; align-items: stretch; gap: .5rem; }
+  .fnd__tile { position: relative; display: block; min-width: 0; overflow: hidden; cursor: pointer; flex: 1 1 0; transition: flex-grow 700ms cubic-bezier(.22, 1, .36, 1); will-change: flex-grow; }
+  .fnd__tile[data-active] { flex-grow: 4.2; }
+  .fnd__tile img { position: absolute; inset: 0 auto; left: 50%; height: 100%; width: var(--img-w); max-width: none; translate: -50% 0; object-fit: cover; object-position: 50% 30%;
+    filter: grayscale(1) sepia(.4) brightness(.95); transition: filter 700ms cubic-bezier(.22, 1, .36, 1); }
+  .fnd__tile[data-active] img { filter: grayscale(0) sepia(0) brightness(1); }
+  .fnd__rail { display: flex; gap: 12px; margin-inline: -1.5rem; padding-inline: 24px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; scroll-padding-inline: 24px; }
+  .fnd__rail::-webkit-scrollbar { display: none; }
+  .fnd__rail-item { flex: 0 0 64vw; scroll-snap-align: center; }
+  .fnd__rail-item a { position: relative; display: block; overflow: hidden; height: min(calc(52 * max(1svh, var(--min-h-phone) / 100)), 440px); }
+  .fnd__rail-item img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) sepia(.4) brightness(.95); transition: filter 700ms cubic-bezier(.22, 1, .36, 1); }
+  .fnd__rail-item[aria-current='true'] img { filter: none; }
+  .fnd__foot { margin-top: 2.25rem; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 1.25rem; }
+  .fnd__about { display: flex; flex-direction: column; gap: .5rem; }
+  .fnd__name { color: var(--color-ink-deep); }
+  .fnd__blurb { max-width: 28rem; font-size: 15px; line-height: 1.625; color: var(--color-ink-deep); }
+
+  /* Phones: own section after the partnerships rail, slanted top edge. */
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
+    .fnd { --fnd-h: clamp(48px, calc(19 * var(--pu)), 80px); --fnd-pane: max(100svh, var(--min-h-phone)); --fnd-u: max(1svh, calc(var(--min-h-phone) / 100));
+      margin-top: -10vw; padding: calc(10vw + 40px) 1.5rem 3.5rem; clip-path: polygon(0 10vw, 100% 0, 100% 100%, 0 100%); }
+  }
+  @media (min-width: 768px) and (pointer: fine), (min-width: 901px) {
+    .fnd { z-index: auto; height: var(--fnd-pane); padding: 6rem calc(var(--page-x) + 3rem) clamp(32px, calc(5.5556 * var(--vu)), 80px); }
+    .fnd__gallery { margin-top: min(32px, calc(2.2222 * var(--vu))); }
+    .fnd__tiles { display: flex; }
+    .fnd__rail { display: none; }
+    .fnd__foot { margin-top: min(32px, calc(2.2222 * var(--vu))); flex-direction: row; align-items: center; gap: 3rem; }
+    .fnd__about { flex-direction: row; align-items: flex-start; gap: 4rem; }
+    .fnd__name { max-width: 220px; }
+    .fnd__blurb { font-size: 1rem; }
+  }
+  @media (min-width: 1024px) { .fnd__about { gap: 6rem; } }
+</style>

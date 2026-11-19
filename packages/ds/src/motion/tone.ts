@@ -9,7 +9,8 @@ export const TONE_RESCAN = 'v:tone-rescan';
 
 export function initTones(fallback?: string) {
   const apply = (el: Element | null) => {
-    if (document.body.hasAttribute('data-footer-dark')) return;
+    // data-tone-hold: a pinned scene is driving the theme itself.
+    if (document.body.hasAttribute('data-footer-dark') || document.body.hasAttribute('data-tone-hold')) return;
     const t = el ? MAP[el.getAttribute('data-tone') ?? ''] : fallback;
     if (t) document.body.setAttribute('data-theme', t);
   };
@@ -33,7 +34,10 @@ export function initTones(fallback?: string) {
         onLeaveBack: i === 0 ? () => apply(null) : undefined,
       }),
     );
-    apply(atTop(els) ?? els[0] ?? null);
+    // Nothing at the top yet (e.g. a self-managed pinned intro above the first
+    // toned section): keep the page's own theme instead of borrowing the next one.
+    const first = els[0];
+    apply(atTop(els) ?? (first && first.getBoundingClientRect().top > 0 ? null : first ?? null));
   };
   // Bound after first paint: creating triggers measures layout.
   deferInit(bind);

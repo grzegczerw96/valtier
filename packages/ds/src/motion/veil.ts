@@ -20,13 +20,28 @@ export function afterVeil(fn: () => void) {
     fn();
   };
   window.addEventListener(VEIL_EVENT, go, { once: true });
-  const t = window.setTimeout(go, 3500);
+  // Safety net if the veil never lifts; waits longer while something holds it.
+  const t0 = performance.now();
+  let t = 0;
+  const check = () => (veilHeld() && performance.now() - t0 < 10000 ? (t = window.setTimeout(check, 250)) : go());
+  t = window.setTimeout(check, 3500);
   return () => {
     done = true;
     window.removeEventListener(VEIL_EVENT, go);
     clearTimeout(t);
   };
 }
+
+/** Keeps the first-visit loader up until `p` settles (e.g. the WebGL hero is ready),
+ *  so an intro never starts underneath it. Capped by the loader's own maximum. */
+type Hold = { done: boolean };
+declare global { interface Window { __vHolds?: Hold[] } }
+export function holdVeil(p: Promise<unknown>) {
+  const h: Hold = { done: false };
+  (window.__vHolds ??= []).push(h);
+  p.then(() => (h.done = true), () => (h.done = true));
+}
+export function veilHeld() { return !!window.__vHolds?.some((h) => !h.done); }
 
 export function liftVeil() {
   document.documentElement.setAttribute('data-veil-lifted', '');

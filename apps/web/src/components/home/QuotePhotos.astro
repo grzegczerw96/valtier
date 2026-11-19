@@ -1,0 +1,79 @@
+---
+/** After the quote lands: three instant photos fly up over it from below, tilting
+ *  into place (scrubbed, .9s smoothing), while the field behind turns from turf
+ *  to purple leather. Phones carry the quote here too (dot reveal on arrival). */
+import Polaroid from '@valtier/ds/components/Polaroid.astro';
+import DotReveal from '@valtier/ds/components/DotReveal.astro';
+import { withBase } from '@valtier/ds/lib/base';
+import { quote } from '../../content/home';
+
+const POSE = [
+  { rotate: -4, x: -3 },
+  { rotate: 2, x: 4 },
+  { rotate: -2, x: -1 },
+];
+const label = quote.lines.join(' ');
+---
+<section class="qp" data-section="quote-photos" data-tone="purple" aria-label={label}>
+  <div class="qp__phone-field" aria-hidden="true"></div>
+  <div class="qp__field" data-qp-field data-theme="tone-purple" aria-hidden="true">
+    <div class="qp__grass" data-qp-grass></div>
+    <div class="qp__pebble" data-qp-pebble></div>
+  </div>
+  <div class="qp__sticky" data-qp-sticky>
+    <div class="qp__phone-quote" data-qp-phone aria-hidden="true">
+      <div class="qp__phone-inner" data-qp-phone-inner>
+        <img class="qp__marks" src={withBase('/svg/quotes.svg')} alt="" width="116" height="42" />
+        <h2 class="display qp__title">
+          {quote.lines.map((l, i) => <DotReveal event="v:home-quote" delay={0.22 * i} class="qp__line">{l}</DotReveal>)}
+        </h2>
+        <p class="qp__desc" data-qp-desc>{quote.body}</p>
+      </div>
+    </div>
+    <div class="qp__stack" aria-hidden="true">
+      {quote.photos.map((p, i) => (
+        <div class="qp__photo" data-qp-photo data-rot={POSE[i % 3].rotate} data-x={POSE[i % 3].x}>
+          <Polaroid src={p.src} alt={p.alt} class="qp__print" />
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+  window.vDefer(async () => {
+    const { initQuotePhotos } = await import('./quote-photos');
+    await window.vIdle();
+    initQuotePhotos();
+  });
+</script>
+
+<style is:global>
+  .qp { position: relative; width: 100%; height: 236vh; }
+  .qp__phone-field { display: none; position: absolute; inset: 0; z-index: 0; pointer-events: none; background: var(--color-ink-deep) url('/textures/pebble.webp') 0 0 / var(--pebble-tile) var(--pebble-tile) repeat; background-blend-mode: multiply; }
+  .qp__field { position: fixed; inset: 0; z-index: 30; pointer-events: none; opacity: 0; visibility: hidden; background-color: var(--color-purple-fog); }
+  .qp__grass, .qp__pebble { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: multiply; }
+  .qp__grass { z-index: 8; background: url('/textures/grass.webp') 0 0 / 170px repeat; }
+  .qp__pebble { z-index: 9; opacity: 0; background: url('/textures/pebble.webp') 0 0 / var(--pebble-tile) var(--pebble-tile) repeat; }
+  .qp__sticky { position: sticky; top: 0; z-index: 60; height: 100svh; width: 100%; pointer-events: none; --vu: var(--vu-fit); --pu: min(1vw, .5lvh); }
+  .qp__stack { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; }
+  .qp__photo { grid-area: 1 / 1; position: relative; width: clamp(min(260px, calc(260 / 3.9 * var(--pu))), calc(26 * var(--vu)), 620px); will-change: transform, opacity; }
+  .qp__print { --polaroid-mat: clamp(8px, calc(.8 * var(--vu)), 14px); pointer-events: auto; }
+  html.js .qp__photo { opacity: 0; }
+  .qp__phone-quote { display: none; }
+
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
+    .qp { height: 300lvh; background-color: var(--color-ink-deep); }
+    .qp__phone-field { display: block; }
+    .qp__field { display: none; }
+    .qp__sticky { z-index: 40; height: 100lvh; }
+    .qp__photo { width: min(260px, calc(260 / 3.9 * var(--pu))); }
+    .qp__print { padding-bottom: 11px; }
+    .qp__phone-quote { display: block; position: absolute; inset: 0; z-index: 10; overflow: hidden; pointer-events: none; }
+    .qp__phone-inner { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; text-align: center; will-change: transform; }
+    .qp__marks { margin-inline: auto; width: clamp(60px, 7vw, 130px); height: auto; }
+    .qp__title { display: block; margin-top: 2.5rem; font-size: calc(19 * var(--pu)); line-height: .92; letter-spacing: -.015em; color: var(--color-taupe); white-space: nowrap; }
+    .qp__line { width: max-content; margin-inline: auto; }
+    .qp__desc { margin: 2.5rem auto 0; max-width: min(30em, 86vw); font-size: 15px; line-height: 1.625; color: #f7f3ef; opacity: 0; text-wrap: wrap; }
+  }
+</style>

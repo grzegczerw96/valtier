@@ -8,13 +8,13 @@
  *  Phones use a skewed slab that translates across instead of a clip wipe. */
 import { gsap } from './gsap';
 import { isPhone, prefersReducedMotion } from './env';
-import { liftVeil, isVeiled } from './veil';
+import { liftVeil, isVeiled, veilHeld } from './veil';
 import { sound } from './sound';
 
 export const LOGO_H = 43;
 const WIPE_END = 118;
 const FLAG = 'v-transition';
-export const VEIL_TIMING = { MIN_MS: 900, MAX_MS: 5000, IN: 0.45, OUT: 0.7, OUT_DELAY: 0.14, FIRST_OUT: 0.8, SLAB_IN: 420, SLAB_OUT: 560, FADE: 220 };
+export const VEIL_TIMING = { MIN_MS: 900, MAX_MS: 5000, HOLD_MAX_MS: 9000, IN: 0.45, OUT: 0.7, OUT_DELAY: 0.14, FIRST_OUT: 0.8, SLAB_IN: 420, SLAB_OUT: 560, FADE: 220 };
 
 const wipeIn = (t: number) => `polygon(0 0, ${t}% 0, ${t - 18}% 100%, 0 100%)`;
 const wipeOut = (t: number) => `polygon(${t}% 0, 100% 0, 100% 100%, ${t - 18}% 100%)`;
@@ -89,7 +89,8 @@ export function initTransitions(veil: HTMLElement) {
       const r = el.getBoundingClientRect();
       return r.top < 1.25 * innerHeight && r.bottom > 0 && r.width > 0;
     };
-    const imgs = Array.from(document.images).filter((i) => !i.complete && near(i));
+    // Lazy images never gate the loader: off-screen ones may never load at all.
+    const imgs = Array.from(document.images).filter((i) => !i.complete && i.loading !== 'lazy' && near(i));
     let done = 0;
     const bump = () => (done += 1);
     imgs.forEach((i) => i.decode().then(bump, bump));
@@ -98,7 +99,8 @@ export function initTransitions(veil: HTMLElement) {
     await new Promise<void>((resolve) => {
       const step = () => {
         const now = performance.now();
-        const target = Math.min(1, 0.3 * fonts + 0.7 * (imgs.length ? done / imgs.length : isLoaded ? 1 : 0.5));
+        const held = veilHeld();
+        const target = Math.min(held ? 0.92 : 1, 0.3 * fonts + 0.7 * (imgs.length ? done / imgs.length : isLoaded ? 1 : 0.5));
         const dt = Math.min(0.05, (now - last) / 1000) || 0.016;
         last = now;
         const w = 4.444444444444445, x = w * dt;
@@ -109,7 +111,7 @@ export function initTransitions(veil: HTMLElement) {
         b = target + (diff + tmp) * k;
         onTick?.(b);
         const elapsed = now - t0;
-        if ((isLoaded && target >= 0.999 && b >= 0.99 && elapsed >= minMs) || elapsed >= maxMs) {
+        if ((isLoaded && !held && target >= 0.999 && b >= 0.99 && elapsed >= minMs) || elapsed >= (held ? Math.max(maxMs, VEIL_TIMING.HOLD_MAX_MS) : maxMs)) {
           onTick?.(1);
           resolve();
           return;
