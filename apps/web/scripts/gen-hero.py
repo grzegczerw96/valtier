@@ -5,7 +5,12 @@
 <source-image>  photo (or RGBA cut-out) of the athlete facing the camera.
 <lens-spec>     lens shapes in source-image UV, "cx,cy,rx,ry[,rot];..." (ellipses;
                 one per lens or one for a visor).
---cutout        remove the background with rembg (isnet-general-use) first.
+--cutout        remove the background with rembg first (BiRefNet; isnet with --isnet).
+--center=u      centre the canvas on this source-image u (the face axis).
+--lensy=0.38    place the lens line at this share of the canvas height (else bottom-anchored).
+--fade=0.25     fade out the lowest share of the subject (for head-and-shoulder crops).
+--fill=0.95     subject height as a share of the canvas; the subject's lower edge
+                (a photo crop) is anchored just below the canvas bottom.
 
 Writes public/media/hero/:
   portrait.webp        1600x1151 RGBA, subject centred, feet off the bottom edge
@@ -21,20 +26,29 @@ OUT = os.path.join(os.path.dirname(__file__), "..", "public", "media", "hero")
 W, H = 1600, 1151
 
 
-def cutout(img):
+def cutout(img, model="birefnet-general"):
     from rembg import remove, new_session
-    return remove(img.convert("RGB"), session=new_session("isnet-general-use"), post_process_mask=True)
+    return remove(img.convert("RGB"), session=new_session(model), post_process_mask=True)
 
 
-def place(src):
-    """Fit the subject so it spans ~92% of the canvas height, centred, cropped at the bottom."""
+def place(src, fill=0.95, center=None, lens_y=None, fade=0.0):
+    """Fit the subject to `fill` of the canvas height, centred, its lower edge just past the bottom."""
     bbox = src.getchannel("A").point(lambda v: 255 if v > 24 else 0).getbbox() or (0, 0, *src.size)
     sub = src.crop(bbox)
-    scale = (H * 1.02) / sub.size[1]
+    scale = (H * fill) / sub.size[1]
     sub = sub.resize((max(1, round(sub.size[0] * scale)), max(1, round(sub.size[1] * scale))), Image.LANCZOS)
     canvas = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    x = (W - sub.size[0]) // 2
-    y = round(H * 0.06)
+    # Centre on `center` (source-image u of the face axis) when given, else on the silhouette.
+    x = (W - sub.size[0]) // 2 if center is None else round(W / 2 - (center * src.size[0] - bbox[0]) * scale)
+    y = H - sub.size[1] + round(H * 0.02)
+    if lens_y is not None:
+        # Put the lens line at lens_y of the canvas; the cut-off lower edge then fades out.
+        y = round(H * lens_y[0] - (lens_y[1] * src.size[1] - bbox[1]) * scale)
+    if fade > 0:
+        a = np.asarray(sub.getchannel("A")).astype(np.float32)
+        h = a.shape[0]
+        ramp = np.clip((h - np.arange(h)) / (fade * h), 0, 1) ** 1.6
+        sub.putalpha(Image.fromarray((a * ramp[:, None]).astype(np.uint8)))
     canvas.alpha_composite(sub, (x, y))
     return canvas, (bbox, scale, x, y)
 
@@ -87,8 +101,13 @@ def main():
     specs = [tuple(float(x) for x in s.split(",")) for s in spec.split(";") if s.strip()]
     src = ImageOps.exif_transpose(Image.open(src_path)).convert("RGBA")
     if "--cutout" in sys.argv:
-        src = cutout(src)
-    canvas, geo = place(src)
+        src = cutout(src, "isnet-general-use" if "--isnet" in sys.argv else "birefnet-general")
+    fill = next((float(a.split("=")[1]) for a in sys.argv if a.startswith("--fill=")), 0.95)
+    center = next((float(a.split("=")[1]) for a in sys.argv if a.startswith("--center=")), None)
+    ly = next((float(a.split("=")[1]) for a in sys.argv if a.startswith("--lensy=")), None)
+    fade = next((float(a.split("=")[1]) for a in sys.argv if a.startswith("--fade=")), 0.0)
+    lens_v = sum(sp[1] for sp in specs) / len(specs)
+    canvas, geo = place(src, fill, center, (ly, lens_v) if ly is not None else None, fade)
     os.makedirs(OUT, exist_ok=True)
     canvas.save(os.path.join(OUT, "portrait.webp"), "WEBP", quality=82, method=6)
     a = np.asarray(canvas.getchannel("A"))

@@ -1,6 +1,11 @@
 """Partnership visuals for the Home page.
 
-  python apps/web/scripts/gen-partner-art.py
+  python apps/web/scripts/gen-partner-art.py [<pexels-dir>]
+
+With <pexels-dir> (holding photos/<id>.jpg, see MEDIA.md) it also builds
+home/partner-halo.webp (white headphones, Pexels 3394666) and
+home/partner-volta.webp (profile in sunglasses, Pexels 34198837; chest patch
+painted out) as rembg (BiRefNet) cut-outs.
 
 home/partner-cleat.webp (+ -depth): the gold Northline cleat (cut-out from
   media/cleats/cleat-gold.webp) on a transparent 16:9 canvas, inside the same
@@ -50,6 +55,16 @@ def cleat():
     s = min(bw / src.size[0], bh / src.size[1])
     src = src.resize((int(src.size[0] * s), int(src.size[1] * s)), Image.LANCZOS)
     src = src.filter(ImageFilter.UnsharpMask(1.2, 60, 2))
+    # Metallic grade: luminance through a gold ramp with a contrast S-curve.
+    arr = np.asarray(src).astype(np.float32) / 255
+    lum = arr[..., :3] @ np.array([0.3, 0.59, 0.11], np.float32)
+    lo, hi = np.percentile(lum[arr[..., 3] > 0.5], [3, 99])
+    k = np.clip((lum - lo) / max(1e-3, hi - lo), 0, 1)
+    k = k * k * (3 - 2 * k)
+    stops = np.array([[0.16, 0.08, 0.01], [0.55, 0.33, 0.05], [0.86, 0.64, 0.2], [1.0, 0.88, 0.52], [1.0, 0.98, 0.86]], np.float32)
+    pos = np.linspace(0, 1, len(stops))
+    rgb = np.stack([np.interp(k, pos, stops[:, c]) for c in range(3)], -1)
+    src = Image.fromarray((np.dstack([rgb, arr[..., 3]]) * 255).clip(0, 255).astype(np.uint8), "RGBA")
     canvas = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     canvas.alpha_composite(src, (int(W * l + (bw - src.size[0]) / 2), int(H * t + (bh - src.size[1]) / 2)))
     save(canvas, "partner-cleat.webp", 86)
@@ -134,6 +149,51 @@ def forge():
     save(canvas.crop(bbox), "partner-forge.webp", 84)
 
 
+def rembg_cut(img, hole_seed=None):
+    from rembg import remove, new_session
+    out = remove(img.convert("RGB"), session=new_session("birefnet-general"), post_process_mask=True)
+    a = np.asarray(out.getchannel("A")).astype(np.float32)
+    a[a < 10] = 0
+    if hole_seed:
+        # Backdrop enclosed by the object (e.g. inside a headband): flood the
+        # near-white region from the seed on the source photo and clear it.
+        rgb = np.asarray(img.convert("RGB")).astype(np.int16)
+        white = (rgb.min(axis=2) > 249) & (rgb.max(axis=2) - rgb.min(axis=2) < 4)
+        m = Image.fromarray((white * 255).astype(np.uint8)).copy()  # own buffer: floodfill writes in place
+        ImageDraw.floodfill(m, hole_seed, 128)
+        hole = Image.fromarray(((np.asarray(m) == 128) * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(1))
+        a *= 1 - np.asarray(hole).astype(np.float32) / 255
+    out.putalpha(Image.fromarray(a.astype(np.uint8)))
+    return out.crop(out.getbbox())
+
+
+def halo(src_dir):
+    im = Image.open(os.path.join(src_dir, "photos", "3394666.jpg")).convert("RGB")
+    cut = rembg_cut(im, hole_seed=(im.size[0] // 2, int(im.size[1] * 0.45)))
+    cut.thumbnail((1400, 1400), Image.LANCZOS)
+    save(cut, "partner-halo.webp", 86)
+
+
+def volta(src_dir):
+    im = Image.open(os.path.join(src_dir, "photos", "34198837.jpg")).convert("RGB")
+    W, H = im.size
+    # Paint out the printed chest patch with shirt fabric from just left of it.
+    box = (int(0.772 * W), int(0.752 * H), W, int(0.897 * H))
+    w, h = box[2] - box[0], box[3] - box[1]
+    patch = im.crop((box[0] - w - 20, box[1], box[0] - 20, box[3]))
+    m = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(m).rectangle([18, 18, w - 18, h - 18], fill=255)
+    m = m.filter(ImageFilter.GaussianBlur(14))
+    im.paste(patch, box[:2], m)
+    cut = rembg_cut(im)
+    cut.thumbnail((1500, 1500), Image.LANCZOS)
+    save(cut, "partner-volta.webp", 86)
+
+
 if __name__ == "__main__":
+    import sys
     cleat()
     forge()
+    if len(sys.argv) > 1:
+        halo(sys.argv[1])
+        volta(sys.argv[1])

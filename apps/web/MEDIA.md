@@ -36,6 +36,8 @@ and `<dir>/video/<id>.mp4` are the originals below (cut-outs use rembg 2.0.50, m
 | football.webp | 26707860 (cut-out, tee removed) |
 | gloves.webp | 13141533 (cut-out: helmet in gloved hand — no receiver-glove shots on Pexels) |
 | cleats c01–c10, cleat-gold | 32573999, 32574015, 32574010 (cut-outs + hue-rotated / gilded colourways) |
+| hero/portrait (Home) | 9573696 |
+| home/partner-halo, home/partner-volta (Home) | 3394666, 34198837 |
 
 Photo URLs: `https://www.pexels.com/photo/<id>/` · video: `https://www.pexels.com/video/<id>/`
 
@@ -44,7 +46,8 @@ Photo URLs: `https://www.pexels.com/photo/<id>/` · video: `https://www.pexels.c
 | File | Made by | Notes |
 |---|---|---|
 | cards/card-01–05.webp | `scripts/gen-cards.py` | trading cards: rembg cut-out of existing photos (career, r10, reel-02, r16, reel-03) on a violet field, gold dust, bevelled gold frame |
-| hero/portrait.webp, portrait-depth.webp, portrait-lens.webp | `scripts/gen-hero.py <photo> "<lens ellipses>" [--cutout]` | WebGL depth portrait. **Placeholder**: built from records/r16 until a front-facing portrait with sport sunglasses is sourced; rerun the script with the new photo and paste the printed `lensCenter` into `content/home.ts` |
+| hero/portrait.webp, portrait-depth.webp, portrait-lens.webp | `scripts/gen-hero.py` | WebGL depth portrait from Pexels 9573696 (top 62% of the frame, BiRefNet cut-out): `python apps/web/scripts/gen-hero.py hero-src.jpg "0.4428,0.4467,0.0438,0.045;0.5727,0.4512,0.0466,0.0442" --cutout --fill=0.88 --center=0.5078`, then paste the printed `lensCenter` into `content/home.ts` |
+| home/partner-halo.webp, home/partner-volta.webp | `scripts/gen-partner-art.py <pexels-dir>` | BiRefNet cut-outs of Pexels 3394666 (headphones, backdrop inside the band flooded out) and 34198837 (printed chest patch painted out) |
 | home/partner-cleat.webp (+ -depth) | `scripts/gen-partner-art.py` | cleat-gold cut-out on a 16:9 canvas for the depth slide |
 | home/partner-forge.webp | `scripts/gen-partner-art.py` | procedural FORGE packaging (photos r10, career, reel-02) |
 | ../textures/light-wash.webp, light-spot.webp, paper-grain.webp | `scripts/gen-lights.py` | soft-light window washes, instant-photo paper grain |
