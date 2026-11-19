@@ -175,7 +175,9 @@ const fontSize = `calc(0.8 * min(calc(var(--ty-base, calc(0.62 * var(--page-w)))
 <style>
   .ty { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; padding: 1.5rem 0 4rem; }
   .ty__wrap { position: relative; --ty-base: 73vw; }
-  .ty__num, .ty__ghost { white-space: nowrap; text-align: center; line-height: 0.78; color: var(--color-bone); letter-spacing: -0.02em; font-weight: 500; }
+  /* line-height 0.78 / 0.8: the glyphs are scaled to 0.8 (see fontSize) but the line box keeps
+     the reference's height, so the section and everything below it stay where they belong. */
+  .ty__num, .ty__ghost { white-space: nowrap; text-align: center; line-height: 0.975; color: var(--color-bone); letter-spacing: -0.02em; font-weight: 500; }
   .ty__num { position: relative; }
   html.js .ty__num { clip-path: polygon(0 -15%, 0% -15%, -18% 115%, 0 115%); }
   .ty__ghost { display: none; }

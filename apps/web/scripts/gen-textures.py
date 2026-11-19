@@ -4,7 +4,7 @@
 
 Writes into apps/web/public/textures/:
   pebble.webp  480px tile  - football-leather pebble grain (Voronoi domes)
-  grass.webp   170px tile  - turf fibre noise
+  grass.webp   512px tile  - fine turf grain, shown at 170px
   light.webp   1440x810    - soft diagonal light shaft (alpha), used with soft-light blend
 """
 import os
@@ -52,22 +52,28 @@ def pebble(size=480, cells=70):
     Image.fromarray(np.clip(img, 0, 255).astype(np.uint8), "L").save(os.path.join(OUT, "pebble.webp"), quality=58, method=6)
 
 
-def grass(size=170, blades=5200):
-    big = Image.new("L", (size * 3, size * 3), 60)
+def grass(size=512, blades=26000, display=170, target_std=13.0):
+    """Fine turf grain: a 512px tile shown at 170 CSS px (like a 3x asset), so the browser
+    averages it into a soft, even grain. Contrast is set on the *displayed* tile (std ~13 at
+    170px, about 60% of the reference's ~21), mean kept at 78 so the multiply darkening -
+    i.e. the page tone - is unchanged."""
+    big = Image.new("L", (size * 3, size * 3), 72)
     d = ImageDraw.Draw(big)
     for _ in range(blades):
         x, y = rng.uniform(0, size), rng.uniform(0, size)
-        ang = rng.normal(-np.pi / 2, 0.55)
-        ln = rng.uniform(3, 9)
-        c = int(np.clip(rng.normal(95, 45), 10, 230))
+        ang = rng.normal(-np.pi / 2, 0.6)
+        ln = rng.uniform(4, 13)
+        c = int(np.clip(rng.normal(88, 34), 20, 200))
         for ox in (0, size, 2 * size):
             for oy in (0, size, 2 * size):
                 x0, y0 = x + ox, y + oy
                 d.line([(x0, y0), (x0 + np.cos(ang) * ln, y0 + np.sin(ang) * ln)], fill=c, width=1)
-    tile = big.crop((size, size, 2 * size, 2 * size)).filter(ImageFilter.GaussianBlur(0.35))
+    tile = big.crop((size, size, 2 * size, 2 * size)).filter(ImageFilter.GaussianBlur(0.6))
     a = np.asarray(tile, np.float32)
-    a = (a - a.mean()) / (a.std() + 1e-6) * 40 + 78
-    Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "L").save(os.path.join(OUT, "grass.webp"), quality=62, method=6)
+    a -= a.mean()
+    shown = np.asarray(Image.fromarray(a + 128).resize((display, display), Image.BOX), np.float32)
+    a = a * (target_std / (shown.std() + 1e-6)) + 78
+    Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "L").save(os.path.join(OUT, "grass.webp"), quality=70, method=6)
 
 
 def light(w=1440, h=810):
@@ -86,8 +92,10 @@ def light(w=1440, h=810):
 
 
 if __name__ == "__main__":
-    pebble()
-    grass()
-    light()
+    import sys
+    only = set(sys.argv[1:]) or {"pebble", "grass", "light"}
+    for name in ("pebble", "grass", "light"):
+        if name in only:
+            {"pebble": pebble, "grass": grass, "light": light}[name]()
     for f in sorted(os.listdir(OUT)):
         print(f, os.path.getsize(os.path.join(OUT, f)) // 1024, "KB")
