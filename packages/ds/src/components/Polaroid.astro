@@ -1,0 +1,31 @@
+---
+/** Instant-photo print: warm bone mat, photo window, paper grain (multiply).
+ *  Size it from the outside (width, or height + aspect). `mat` sets the border. */
+interface Props {
+  src: string;
+  alt?: string;
+  width?: number;
+  height?: number;
+  aspect?: string;
+  mat?: string;
+  class?: string;
+  loading?: 'eager' | 'lazy';
+  sizes?: string;
+  style?: string;
+  [k: string]: unknown;
+}
+const { src, alt = '', width = 600, height = 800, aspect = '409 / 564', mat = 'var(--polaroid-mat, 10px)', class: cls, loading = 'lazy', style, ...rest } = Astro.props;
+---
+<div class:list={['polaroid', cls]} style={`--mat:${mat};${style ?? ''}`} {...rest}>
+  <div class="polaroid__photo" style={`aspect-ratio:${aspect}`}>
+    <img src={src} alt={alt} width={width} height={height} loading={loading} decoding="async" draggable="false" />
+  </div>
+  <span class="polaroid__grain" aria-hidden="true"></span>
+</div>
+
+<style is:global>
+  .polaroid { position: relative; border-radius: 4px; padding: var(--mat); background: linear-gradient(175deg, #f6f3ef 0%, #f0e4d4 100%); box-shadow: 0 30px 80px rgba(0, 0, 0, .45); }
+  .polaroid__photo { position: relative; width: 100%; overflow: hidden; background: var(--color-card-photo); }
+  .polaroid__photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .polaroid__grain { position: absolute; inset: 0; pointer-events: none; border-radius: inherit; background: url('/textures/paper-grain.webp') 0 0 / 40% repeat; mix-blend-mode: multiply; }
+</style>

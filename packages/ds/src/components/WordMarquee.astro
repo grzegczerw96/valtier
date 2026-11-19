@@ -1,0 +1,33 @@
+---
+/** Giant name words drifting behind a light hero (soft-light, 1px blur): one row
+ *  runs left, the other right, 90 s per loop. Each word is an SVG used as a mask
+ *  and filled with the theme foreground. `aspect` = SVG width / height. */
+interface Word { src: string; aspect: number }
+interface Props { rows: [Word, Word]; class?: string }
+const { rows, class: cls } = Astro.props;
+---
+<div class:list={['wmq', cls]} aria-hidden="true">
+  {rows.map((w, i) => (
+    <div class="wmq__row">
+      <div class:list={['wmq__track', i === 1 && 'wmq__track--reverse']}>
+        {[0, 1, 2, 3].map(() => <span class="wmq__word" style={`--w:${w.aspect};-webkit-mask-image:url(${w.src});mask-image:url(${w.src})`}></span>)}
+      </div>
+    </div>
+  ))}
+</div>
+
+<style is:global>
+  .wmq { position: absolute; inset-inline: 0; top: -6vh; height: 112vh; display: flex; flex-direction: column; gap: 2vh; pointer-events: none; }
+  .wmq__row { flex: 0 0 55vh; display: flex; align-items: center; overflow: hidden; mix-blend-mode: soft-light; }
+  .wmq__track { display: flex; flex-wrap: nowrap; align-items: center; gap: 8vw; width: max-content; padding-inline: 4vw; will-change: transform; animation: wmq-left 90s linear infinite; }
+  .wmq__track--reverse { animation-name: wmq-right; }
+  .wmq__word {
+    flex: none; display: block; height: 55vh; width: calc(55vh * var(--w));
+    background-color: var(--theme-fg); filter: blur(1px); opacity: calc(var(--marquee-opacity, 1) * (1 - var(--fdp, 0)));
+    -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: 50%; mask-position: 50%;
+  }
+  @keyframes wmq-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes wmq-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) { .wmq { top: calc(8.333% - 6vh); } }
+  @media (prefers-reduced-motion: reduce) { .wmq__track { animation: none; transform: translateX(-12%); } }
+</style>

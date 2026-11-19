@@ -1,0 +1,116 @@
+---
+/** "Make a play": a two-line headline and an endless belt of pinned-up prints
+ *  that drifts with the page scroll, can be grabbed and flung, and rises into
+ *  place on arrival. Each print straightens and grows on hover, then lands at a
+ *  new random tilt. */
+import DotReveal from '@valtier/ds/components/DotReveal.astro';
+import { makeAPlay } from '../../content/home';
+
+const POSES = [
+  { h: 44, y: 6, r: -3 }, { h: 54, y: -4, r: 2 }, { h: 48, y: 7, r: -2 }, { h: 56, y: 1, r: 3 },
+  { h: 46, y: 8, r: -3 }, { h: 48, y: 3, r: 2 }, { h: 42, y: -5, r: -2 }, { h: 50, y: 6, r: 3 },
+];
+const cards = makeAPlay.cards.map((c, i) => {
+  const p = POSES[i % POSES.length];
+  return { ...c, ...p, pw: 62 + ((p.h - 42) / 14) * 6 };
+});
+---
+<section class="mp" data-section="make-a-play" data-tone="light" aria-label={makeAPlay.heading.join(' ')}>
+  <div class="mp__texture" aria-hidden="true"><div></div></div>
+  <div class="mp__head">
+    <h2 class="display mp__title">
+      {makeAPlay.heading.map((l, i) => <DotReveal class="mp__line" delay={0.14 * i} startAt={0.78}>{l}</DotReveal>)}
+    </h2>
+  </div>
+  <div class="mp__rail">
+    <div class="mp__belt" data-mp-belt>
+      {[0, 1].map((copy) => (
+        <div class="mp__set" aria-hidden={copy === 1 ? 'true' : undefined}>
+          {cards.map((c) => (
+            <div class="mp__card" data-mp-card>
+              <a class="mp__frame" href={c.href} tabindex={copy === 1 ? -1 : undefined} aria-label={c.caption} draggable="false" data-mp-frame data-cursor="Explore"
+                style={`--mp-h:calc(clamp(180px, min(calc(${c.h} * var(--mp-u)), calc(${(0.625 * c.h).toFixed(3)} * var(--page-w) / 100)), ${Math.round(14 * c.h)}px) * var(--play-card, 1));--mp-w:calc(${c.pw.toFixed(2)} * var(--pu));--oy:${c.y}px;--rot:${c.r}deg`}>
+                <div class="mp__print">
+                  <div class="mp__photo">
+                    <img src={c.src} alt="" loading="lazy" decoding="async" draggable="false" />
+                    <div class="mp__cap" aria-hidden="true">
+                      <span class="mp__blur" style="--b:2px;--f:55%"></span>
+                      <span class="mp__blur" style="--b:5px;--f:38%"></span>
+                      <span class="mp__blur" style="--b:11px;--f:22%"></span>
+                      <span class="mp__grad"></span>
+                      <span class="mp__cap-row"><span>{c.caption}</span><svg viewBox="0 0 24 24" fill="none" stroke="var(--color-bone)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 L17 7" /><path d="M8 7 H17 V16" /></svg></span>
+                    </div>
+                  </div>
+                </div>
+              </a>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+  window.vDefer(async () => {
+    const { initMakeAPlay } = await import('./make-a-play');
+    await window.vIdle();
+    initMakeAPlay();
+  });
+</script>
+
+<style is:global>
+  .mp {
+    --play-h: clamp(28px, calc(10 * var(--vu)), 256px);
+    --mp-gap: clamp(28px, 3vw, 60px);
+    --mp-u: max(1vh, calc(var(--min-h) / 100));
+    --mp-min-h: max(min(100svh, calc(var(--page-w) / 1.6)), var(--min-h));
+    position: relative; z-index: 10; display: flex; width: 100%; min-height: 0; flex-direction: column; justify-content: center; overflow-x: clip;
+    padding-block: 2rem;
+    background-color: var(--color-sand);
+    background-color: color-mix(in oklab, var(--color-sand), var(--color-ink-deep) calc(var(--fdp, 0) * 100%));
+    transition: background-color var(--footer-fade) var(--ease-editorial);
+  }
+  .mp__texture { position: absolute; inset: 0; z-index: 0; pointer-events: none; clip-path: inset(0); mix-blend-mode: screen; opacity: calc(1 - var(--fdp, 0)); transition: opacity var(--footer-fade) var(--ease-editorial); }
+  .mp__texture > div { position: fixed; inset: 0; background: url('/textures/pebble.webp') 0 0 / var(--pebble-tile) var(--pebble-tile) repeat; }
+  .mp__frame { --mp-card-h: var(--mp-h); --mp-card-w: calc(var(--mp-h) * 3 / 4); }
+  .mp__head { position: relative; z-index: 2; display: flex; justify-content: center; padding-inline: 1rem; pointer-events: none; }
+  .mp__title { text-align: center; color: var(--color-purple-deep); font-size: var(--play-h); line-height: .9; letter-spacing: -.015em; user-select: none; }
+  .mp__line { white-space: nowrap; }
+  .mp__rail { position: relative; z-index: 10; width: 100%; margin-top: calc(var(--play-h) * -.27); }
+  .mp__belt { display: flex; width: max-content; will-change: transform; transform: translate3d(0, 0, 0); touch-action: pan-y; user-select: none; cursor: grab; }
+  .mp__set { display: flex; flex-shrink: 0; align-items: center; gap: var(--mp-gap); padding-right: var(--mp-gap); }
+  .mp__card { flex-shrink: 0; will-change: transform; }
+  .mp__frame {
+    position: relative; display: block; flex-shrink: 0; cursor: pointer; height: var(--mp-card-h); width: var(--mp-card-w);
+    transform: translateY(var(--oy)) rotate(var(--rot)) scale(1); transition: transform 650ms cubic-bezier(.22, 1, .36, 1);
+  }
+  .mp__frame[data-hover] { transform: translateY(var(--oy)) rotate(0deg) scale(1.045); }
+  .mp__print { height: 100%; background: var(--color-bone); padding: .25rem; box-shadow: 0 34px 90px -28px rgba(10, 4, 24, .6); }
+  .mp__photo { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--color-card-photo); }
+  .mp__photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .mp__cap { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 450ms var(--ease-ui); transform: translateZ(0); will-change: opacity; }
+  .mp__frame[data-hover] .mp__cap { opacity: 1; }
+  .mp__blur { position: absolute; inset: 0; backdrop-filter: blur(var(--b)); -webkit-backdrop-filter: blur(var(--b));
+    -webkit-mask-image: linear-gradient(to top, #000 0%, #000 4%, rgba(0,0,0,0) var(--f)); mask-image: linear-gradient(to top, #000 0%, #000 4%, rgba(0,0,0,0) var(--f)); }
+  .mp__grad { position: absolute; inset: auto 0 0; height: 50%; background: linear-gradient(to top, rgba(8,4,18,.82) 0%, rgba(8,4,18,.4) 45%, rgba(8,4,18,0) 100%); }
+  .mp__cap-row { position: absolute; inset: auto 0 0; display: flex; align-items: flex-end; justify-content: space-between; gap: .75rem; padding: clamp(8px, 7%, 16px); color: var(--color-bone); font-size: 13px; line-height: 1.375; }
+  .mp__cap-row svg { width: 1rem; height: 1rem; flex-shrink: 0; margin-bottom: .125rem; }
+  @media (min-width: 768px) {
+    .mp__print { padding: .5rem; }
+    .mp__cap-row { font-size: 15px; }
+    .mp__cap-row svg { width: 18px; height: 18px; }
+  }
+  @media (min-width: 768px) and (pointer: fine), (min-width: 901px) {
+    .mp { min-height: var(--mp-min-h); padding-block: 0; }
+    .mp__head { padding: min(calc(12 * var(--mp-u)), calc(7.5 * var(--vu))) 3rem 0; }
+    .mp__rail { padding-bottom: min(calc(8 * var(--mp-u)), calc(5 * var(--vu))); }
+  }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
+    .mp { --play-h: calc(15.5 * var(--pu)); --mp-gap: 22px; --mp-u: max(1vh, calc(var(--min-h-phone) / 100)); --mp-min-h: max(100svh, var(--min-h-phone)); overflow-y: visible; }
+    .mp__frame { --mp-card-w: var(--mp-w); --mp-card-h: calc(var(--mp-w) * 4 / 3); }
+    .mp__belt { cursor: auto; }
+    .mp__cap { opacity: 1; }
+    .mp__blur { display: none; }
+  }
+</style>

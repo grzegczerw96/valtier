@@ -1,0 +1,264 @@
+---
+/** Partnerships. Desktop: a pinned stage (100vh per partner + 120vh) — the big
+ *  grained headline, one hero visual per partner cross-fading as you scroll, a
+ *  vertical progress nav, a frosted info panel, "View all" and the partner
+ *  marquee. Idle for 1.2s and it auto-advances (5.5s per partner). At the end a
+ *  slanted wipe lifts the stage away to reveal the Foundation underneath.
+ *  Phones: a looping snap rail with the visual cross-fading behind it. */
+import Button from '@valtier/ds/components/Button.astro';
+import PartnerMarquee from '@valtier/ds/components/PartnerMarquee.astro';
+import Polaroid from '@valtier/ds/components/Polaroid.astro';
+import Logo from '@valtier/ds/components/Logo.astro';
+import { HAMBURGER } from '@valtier/ds/motion/menu';
+import Foundation from './Foundation.astro';
+import { partnerships } from '../../content/home';
+import { site } from '../../site.config';
+
+const { slides, heading, cta } = partnerships;
+const n = slides.length;
+---
+<!-- Phones: rail -->
+<section class="ptr" data-pt-rail data-tone="dark" aria-label={heading}>
+  <h2 class="sr-only">{heading}</h2>
+  <div class="ptr__headline" aria-hidden="true"><span class="display" data-ptr-word>{heading}</span></div>
+  <div class="ptr__tex" aria-hidden="true"></div>
+  <div class="ptr__body">
+    <div class="ptr__art" aria-hidden="true">
+      {slides.map((s, i) => (
+        <div class="ptr__art-item" data-ptr-art style={i === 0 ? undefined : 'opacity:0;visibility:hidden'}>
+          {s.art.kind === 'depth' && <img class="ptr__img ptr__img--contain" src={s.art.src} alt="" loading="lazy" />}
+          {s.art.kind === 'pair' && (
+            <div class="ptr__pair">
+              <Polaroid class="pt__pair-back" src={s.art.back.src} aspect="1134 / 1419" mat="5px" />
+              <Polaroid class="pt__pair-front" src={s.art.front.src} aspect="1134 / 1419" mat="5px" />
+            </div>
+          )}
+          {s.art.kind === 'cutout' && <img class="ptr__img" src={s.art.src} alt="" loading="lazy" />}
+        </div>
+      ))}
+    </div>
+    <ul class="ptr__list" data-ptr-list>
+      {slides.map((s) => (
+        <li class="ptr__item">
+          <article>
+            <div class="ptr__spacer"></div>
+            <div class="ptr__panel">
+              <h3 class="heading">{s.name}</h3>
+              <p>{s.description}</p>
+            </div>
+          </article>
+        </li>
+      ))}
+    </ul>
+  </div>
+  <div class="ptr__foot">
+    <nav aria-label="Featured partnerships"><ul class="ptr__dots">
+      {slides.map((s, i) => <li><button type="button" class="ptr__dot" data-ptr-dot aria-label={s.name} aria-current={i === 0 ? 'true' : undefined}><span><i data-ptr-fill></i></span></button></li>)}
+    </ul></nav>
+    <Button href={cta.href} variant="light">{cta.label}</Button>
+  </div>
+</section>
+<div class="pt-pebble" data-pt-pebble aria-hidden="true"><div></div></div>
+<div class="pt" data-section="partnerships" data-pt style={`--pt-n:${n}`}>
+  <div class="pt__pin">
+    <div class="pt__under" data-pt-under>
+      <Foundation />
+    </div>
+    <section class="pt__stage" data-pt-stage data-partnerships-stage data-theme="tone-dark" aria-label={heading}>
+      <h2 class="sr-only">{heading}</h2>
+      <div class="pt__layer pt__settle">
+        <div class="pt__headline" data-pt-headline aria-hidden="true">
+          <div class="pt__headline-in">
+            <span class="display pt__word" data-pt-word>{heading}</span>
+            <span class="display pt__word pt__word--grain" data-pt-grain>{heading}</span>
+          </div>
+        </div>
+      </div>
+      <div class="pt__tex" data-pt-tex aria-hidden="true"></div>
+      <div class="pt__layer pt__layer--front pt__settle">
+        <div class="pt__heroes" data-pt-heroes>
+          {slides.map((s, i) => (
+            <div class="pt__hero" data-pt-hero aria-hidden={i === 0 ? 'false' : 'true'} style={i === 0 ? undefined : 'opacity:0'}>
+              {s.art.kind === 'depth' && (
+                <div class="pt__contain">
+                  <div class="pt__depth" style={`width:${s.art.width};aspect-ratio:${s.art.aspect}`}>
+                    <img src={s.art.src} alt={s.art.alt} loading={i < 2 ? 'eager' : 'lazy'} decoding="async" data-pt-still />
+                    <canvas data-pt-gl data-src={s.art.src} data-depth={s.art.depth} data-aspect={s.art.aspect}></canvas>
+                  </div>
+                </div>
+              )}
+              {s.art.kind === 'pair' && (
+                <div class="pt__contain">
+                  <div class="pt__pair" data-pt-pair>
+                    <Polaroid class="pt__pair-back" src={s.art.back.src} alt={s.art.back.alt} aspect="1134 / 1419" mat="clamp(8px, calc(var(--page-w) * .008), 14px)" data-pair-back />
+                    <Polaroid class="pt__pair-front" src={s.art.front.src} alt={s.art.front.alt} aspect="1134 / 1419" mat="clamp(8px, calc(var(--page-w) * .008), 14px)" data-pair-front />
+                  </div>
+                </div>
+              )}
+              {s.art.kind === 'cutout' && (
+                <div class="pt__cutout" style={[s.art.y && `translate:0 ${s.art.y}`, s.art.scale && `scale:${s.art.scale}`].filter(Boolean).join(';') || undefined}>
+                  <img src={s.art.src} alt={s.art.alt} loading="lazy" decoding="async" />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <div class="pt__shade" aria-hidden="true"></div>
+        <div class="pt__info" data-pt-info>
+          <nav class="pt__dots" data-pt-dots aria-label="Featured partnerships">
+            <ul>
+              {slides.map((s, i) => (
+                <li><button type="button" class="pt__dot" data-pt-dot aria-label={s.name} aria-current={i === 0 ? 'true' : undefined}><span><i data-pt-fill></i></span></button></li>
+              ))}
+            </ul>
+          </nav>
+          <div class="pt__panel-grid">
+            {slides.map((s) => (
+              <div class="pt__sizer" aria-hidden="true"><p class="heading">{s.name}</p><p>{s.description}</p></div>
+            ))}
+            <div class="pt__panel">
+              <div data-pt-text>
+                <h3 class="heading" data-pt-name>{slides[0].name}</h3>
+                <p data-pt-desc>{slides[0].description}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pt__cta"><Button href={cta.href} variant="light">{cta.label}</Button></div>
+        <PartnerMarquee partners={site.partners} class="pt__marquee" />
+      </div>
+    </section>
+  </div>
+</div>
+
+
+
+<!-- Ink nav shown below the slanted cut while the stage lifts off the Foundation. -->
+<div class="fnd-nav" data-home-foundation-nav aria-hidden="true">
+  <div class="wipe-nav__row">
+    <span class="wipe-nav__logo"><Logo class="wipe-nav__logo-svg" /></span>
+    <span class="wipe-nav__burger"><svg viewBox="0 0 30 13" fill="currentColor"><path d={HAMBURGER.top} /><path d={HAMBURGER.bot} /></svg></span>
+  </div>
+</div>
+
+<script>
+  window.vDefer(async () => {
+    const { initPartnerships } = await import('./partnerships');
+    await window.vIdle();
+    initPartnerships();
+  });
+</script>
+
+<style is:global>
+  :root { --ht-fnd-h: max(100svh, var(--min-h), calc(var(--page-w) / 1.8)); --ht-u: 1svh; }
+  .pt-pebble { position: fixed; inset: 0; z-index: 5; pointer-events: none; background: var(--color-ink-deep); opacity: 0; visibility: hidden; }
+  .pt-pebble > div { position: absolute; inset: 0; background: url('/textures/pebble.webp') 0 0 / var(--pebble-tile) var(--pebble-tile) repeat; mix-blend-mode: multiply; }
+  .pt { position: relative; z-index: 10; width: 100%; background-color: var(--color-sand); height: calc((100 * var(--pt-n) + 120) * 1vh); margin-bottom: calc(var(--ht-fnd-h) - 100svh); }
+  .pt__pin { position: sticky; top: 0; height: 100svh; width: 100%; overflow-x: clip; --vu: var(--vu-fit); }
+  .pt__under { position: absolute; inset: 0 0 auto; z-index: 0; --fnd-host-h: var(--ht-fnd-h); --vu: min(calc(var(--page-w) / 100), calc(1.8 * var(--ht-fnd-h) / 100)); }
+  .pt__stage {
+    position: absolute; inset: 0; z-index: 10; overflow: hidden; background-color: var(--color-ink-deep); color: var(--color-bone);
+    clip-path: polygon(0% 0%, 100% 0%, 100% calc(100% - var(--p-wipe, 0) * 180%), 0% calc(100% - var(--p-wipe, 0) * 120%));
+    transform: translate3d(0, 0, 0); will-change: clip-path;
+    --pt-bottom: min(160px, calc(20 * var(--ht-u))); --pt-pad-y: 0px; --pt-view-all-x: calc(var(--page-x) + 59px);
+    --pt-panel-fill: color-mix(in srgb, color-mix(in srgb, var(--color-bone) 21%, var(--color-ink-deep)) 46%, transparent);
+  }
+  @media (max-width: 1219px), (max-width: 1299px) and (max-aspect-ratio: 7/5) { .pt__stage { --pt-pad-y: 20px; --pt-bottom: calc(min(160px, calc(20 * var(--ht-u))) - 10px); } }
+  @media (max-width: 1023px) { .pt__stage { --pt-bottom: 44px; --pt-view-all-x: calc(var(--page-x) + 5.5rem); } .pt__marquee { display: none; } }
+  .pt__layer { position: absolute; inset: 0; z-index: 0; }
+  .pt__layer--front { z-index: 2; }
+  .pt__settle { transform: translate3d(0, var(--p-settle, 0px), 0) scale(var(--p-scale, 1)); transform-origin: bottom center; will-change: transform; }
+  .pt__headline {
+    position: absolute; inset: 0 0 auto; z-index: 0; display: flex; justify-content: center; overflow: hidden; pointer-events: none;
+    -webkit-mask-image: linear-gradient(to bottom, #000 62%, rgba(0,0,0,0) 96%); mask-image: linear-gradient(to bottom, #000 62%, rgba(0,0,0,0) 96%);
+  }
+  .pt__headline-in { position: relative; width: max-content; flex-shrink: 0; }
+  .pt__word {
+    display: block; white-space: nowrap; font-size: var(--pt-fs, clamp(120px, calc(29 * var(--vu)), 980px)); letter-spacing: -.03em; line-height: .85;
+    padding-top: calc(6 * var(--ht-u)); color: transparent; -webkit-background-clip: text; background-clip: text;
+    background-image: linear-gradient(#6c4aa2, #6c4aa2);
+  }
+  .pt__word--grain { position: absolute; inset: 0; background-image: url('/textures/pebble.webp'); background-repeat: repeat; background-size: var(--pebble-tile) var(--pebble-tile); mix-blend-mode: multiply; }
+  .pt__tex { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; background: url('/textures/pebble.webp') 0 0 / var(--pebble-tile) var(--pebble-tile) repeat; mix-blend-mode: multiply; }
+  .pt__heroes { position: absolute; inset: 0; z-index: 5; opacity: 0; }
+  .pt__hero { position: absolute; inset: 0; will-change: transform, opacity; }
+  .pt__contain { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .pt__depth { position: relative; }
+  .pt__depth img, .pt__depth canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  .pt__depth canvas { opacity: 0; display: block; }
+  .pt__depth[data-gl] img { opacity: 0; }
+  .pt__pair { position: relative; width: min(88vw, calc(76 * var(--ht-u))); aspect-ratio: 1.18; }
+  @media (min-width: 768px) { .pt__pair { width: min(calc(var(--page-w) * .56), calc(76 * var(--ht-u))); } }
+  .pt__pair-back, .pt__pair-front { position: absolute; border-radius: 0; will-change: transform; }
+  .pt__pair-back { right: 0; top: 9%; height: 88%; aspect-ratio: 1134 / 1419; transform: rotate(2.5deg); box-shadow: 0 26px 60px -24px rgba(0,0,0,.6); }
+  .pt__pair-front { left: 0; top: 0; height: 91%; aspect-ratio: 1134 / 1419; transform: rotate(-4deg); box-shadow: 0 34px 80px -26px rgba(0,0,0,.75); }
+  .pt__pair-back, .pt__pair-front { background: var(--color-bone); }
+  .pt__pair .polaroid__photo { height: 100%; aspect-ratio: auto !important; }
+  .pt__cutout { position: absolute; inset-inline: var(--page-x); top: calc(-2 * var(--ht-u)); bottom: calc(-10 * var(--ht-u)); }
+  .pt__cutout img { width: 100%; height: 100%; object-fit: contain; object-position: bottom; }
+  .pt__shade { display: none; }
+  .pt__info { position: absolute; bottom: var(--pt-bottom); left: calc(var(--page-x) + 3rem); z-index: 20; display: flex; align-items: flex-start; gap: 1.75rem; }
+  .pt__dots { margin-top: .375rem; opacity: 0; }
+  .pt__dots ul { display: flex; flex-direction: column; gap: 5px; }
+  .pt__dot { position: relative; display: flex; border-radius: 9999px; }
+  .pt__dot::before { content: ''; position: absolute; inset: -2.5px -.75rem; }
+  .pt__dot span { position: relative; display: block; width: .5rem; height: .5rem; overflow: hidden; border-radius: 9999px; background: rgba(246, 243, 239, .35); transition: height .5s var(--ease-editorial), background-color .5s var(--ease-editorial); }
+  .pt__dot[aria-current='true'] span { height: 34px; }
+  .pt__dot:not([aria-current='true']):hover span { background: rgba(246, 243, 239, .8); }
+  .pt__dot i { position: absolute; inset: 0; border-radius: 9999px; background: var(--color-bone); transform: translate3d(0, -100%, 0); }
+  .pt__panel-grid { display: grid; width: 250px; }
+  .pt__sizer { visibility: hidden; grid-area: 1 / 1; align-self: start; padding: var(--pt-pad-y) 1.25rem; }
+  .pt__sizer .heading, .pt__panel .heading { font-size: 1.25rem; }
+  .pt__sizer p:last-child, .pt__panel p { margin-top: 1rem; font-size: .875rem; line-height: 1.43; text-wrap: pretty; }
+  .pt__panel { grid-area: 1 / 1; align-self: stretch; border-radius: .75rem; padding: var(--pt-pad-y) 1.25rem; background-color: var(--pt-panel-fill); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); overflow: hidden; }
+  .pt__panel .heading { color: var(--color-bone); }
+  .pt__panel p { color: rgba(246, 243, 239, .55); }
+  .pt__cta { position: absolute; bottom: var(--pt-bottom); right: var(--pt-view-all-x); z-index: 20; }
+  .pt__marquee { position: absolute; inset: auto 0 0; z-index: 3; height: min(120px, calc(15 * var(--ht-u))); display: flex; align-items: center; --mark-scale: .9; }
+
+  .fnd-nav {
+    position: fixed; inset: 0 0 auto; z-index: calc(var(--z-nav) + 1); pointer-events: none; color: var(--color-ink-deep);
+    clip-path: var(--fnd-nav-clip, polygon(0 0, 0 0, 0 0)); will-change: clip-path;
+  }
+
+  /* ---- phone rail ---- */
+  .ptr { display: none; }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
+    .pt-pebble, .fnd-nav, .pt__stage { display: none; }
+    .pt { height: auto; margin-bottom: 0; background: none; z-index: 11; }
+    .pt__pin { position: relative; height: auto; overflow: visible; }
+    .pt__under { position: relative; }
+    .ptr {
+      display: flex; position: relative; margin-top: -1px; flex-direction: column; overflow: hidden; padding-top: 6rem; color: var(--color-bone);
+      background-color: var(--color-ink-deep); min-height: max(100svh, var(--min-h-phone)); padding-bottom: calc(10vw + 44px);
+      --rail-x: 1.5rem; --pt-panel-fill: color-mix(in srgb, color-mix(in srgb, var(--color-bone) 21%, var(--color-ink-deep)) 46%, transparent);
+    }
+    .ptr__headline { position: relative; z-index: 0; display: flex; justify-content: center; overflow: hidden; pointer-events: none;
+      -webkit-mask-image: linear-gradient(to bottom, #000 62%, rgba(0,0,0,0) 96%); mask-image: linear-gradient(to bottom, #000 62%, rgba(0,0,0,0) 96%);
+      margin-bottom: calc(var(--ptr-fs, 22vw) * -.34); }
+    .ptr__headline span { width: max-content; white-space: nowrap; font-size: var(--ptr-fs, clamp(48px, 22vw, 120px)); letter-spacing: -.03em; line-height: .85; color: #6c4aa2; }
+    .ptr__tex { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: url('/textures/pebble.webp') 0 0 / var(--pebble-tile) var(--pebble-tile) repeat; mix-blend-mode: multiply; }
+    .ptr__body { position: relative; z-index: 3; display: flex; flex: 1; flex-direction: column; }
+    .ptr__art { position: absolute; inset: 0 var(--rail-x); z-index: 0; pointer-events: none; overflow: clip; }
+    .ptr__art-item { position: absolute; inset: 0 0 calc(var(--ptr-panel-h, 9rem) + 1.25rem); display: flex; align-items: flex-end; justify-content: center; }
+    .ptr__img--contain { width: 100%; max-width: none; transform: scale(1.75); transform-origin: 50% 62%; }
+    .ptr__img { max-width: 100%; max-height: 100%; object-fit: contain; object-position: bottom;
+      -webkit-mask-image: linear-gradient(to bottom, #000 86%, rgba(0,0,0,0) 100%); mask-image: linear-gradient(to bottom, #000 86%, rgba(0,0,0,0) 100%); }
+    .ptr__pair { position: relative; width: 100%; aspect-ratio: 1.18; }
+    .ptr__list { position: relative; z-index: 1; display: flex; flex: 1 0 auto; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-inline: var(--rail-x); scroll-padding-inline: var(--rail-x); }
+    .ptr__list::-webkit-scrollbar { display: none; }
+    .ptr__item { flex: 0 0 100%; display: flex; scroll-snap-align: center; }
+    .ptr__item article { display: flex; width: 100%; flex-direction: column; }
+    .ptr__spacer { min-height: calc(55 * var(--pu)); flex: 1; }
+    .ptr__panel { position: relative; z-index: 1; border-radius: .75rem; padding: 1.25rem; background-color: var(--pt-panel-fill); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); overflow: hidden; }
+    .ptr__panel .heading { font-size: 1.25rem; color: var(--color-bone); }
+    .ptr__panel p { margin-top: 1rem; max-width: 64ch; font-size: .875rem; color: rgba(246, 243, 239, .55); text-wrap: pretty; }
+    .ptr__foot { position: relative; z-index: 3; margin-top: 1.25rem; display: flex; align-items: center; justify-content: space-between; padding-inline: var(--rail-x); }
+    .ptr__dots { display: flex; align-items: center; gap: 1rem; }
+    .ptr__dot { position: relative; display: flex; border-radius: 9999px; }
+    .ptr__dot::before { content: ''; position: absolute; inset: -18px -.5rem; }
+    .ptr__dot span { position: relative; display: block; height: .5rem; width: .5rem; overflow: hidden; border-radius: 9999px; background: rgba(246, 243, 239, .35); transition: width .5s var(--ease-editorial); }
+    .ptr__dot[aria-current='true'] span { width: 34px; }
+    .ptr__dot i { position: absolute; inset: 0; border-radius: 9999px; background: var(--color-bone); transform: translate3d(-100%, 0, 0); }
+  }
+</style>

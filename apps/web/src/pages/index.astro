@@ -1,20 +1,24 @@
 ---
-/** Home is not designed yet — send visitors to On-Field (static redirect). */
-import { withBase } from '@valtier/ds/lib/base';
-const to = withBase('/on-field');
+import Base from '../layouts/Base.astro';
+import HomeStage from '../components/home/HomeStage.astro';
+import QuotePhotos from '../components/home/QuotePhotos.astro';
+import Partnerships from '../components/home/Partnerships.astro';
+import MakeAPlay from '../components/home/MakeAPlay.astro';
+import { hero, moments } from '../content/home';
+import { footerVariants } from '../site.config';
 ---
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Nico Valtier</title>
-    <meta name="description" content="Nico Valtier — wide receiver #18." />
-    <meta http-equiv="refresh" content={`0; url=${to}`} />
-    <link rel="canonical" href={to} />
-    <meta name="robots" content="noindex" />
-  </head>
-  <body style="background:#0b0a0f;color:#f4efe6;font-family:system-ui,sans-serif">
-    <p style="padding:2rem"><a href={to} style="color:inherit">Continue to On-Field</a></p>
-  </body>
-</html>
+<Base
+  title="Nico Valtier · Wide Receiver #18"
+  description="Nico Valtier, wide receiver #18 of the Northmark Wolves: signature moments, partnerships and the Valtier 18 Foundation."
+  theme="tone-light"
+  footer={footerVariants.onField}
+  preload={[
+    { href: hero.portrait.still, as: 'image', type: 'image/webp', fetchpriority: 'high' },
+    { href: moments.items[0].image, as: 'image', type: 'image/webp' },
+  ]}
+>
+  <HomeStage />
+  <QuotePhotos />
+  <Partnerships />
+  <MakeAPlay />
+</Base>
