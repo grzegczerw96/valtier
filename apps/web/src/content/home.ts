@@ -67,7 +67,7 @@ export const partnerships: { heading: string; cta: { label: string; href: string
       name: 'Northline',
       description:
         'The signature partnership. Nico is the face of Northline football — custom game-day cleats, design sessions at the Northline lab in Harbor City, and a hand in the gear the next generation will wear.',
-      art: { kind: 'depth', src: m('home/partner-cleat.webp'), depth: m('home/partner-cleat-depth.webp'), aspect: 16 / 9, width: 'min(calc(var(--page-w) * 0.96), calc(170 * var(--ht-u)))', alt: 'The gold Northline signature cleat' },
+      art: { kind: 'depth', src: m('home/partner-cleat.webp'), depth: m('home/partner-cleat-depth.webp'), aspect: 16 / 9, width: 'min(calc(var(--page-w) * 0.84), calc(148 * var(--ht-u)))', alt: 'The gold Northline signature cleat' },
     },
     {
       name: 'Kestrel',

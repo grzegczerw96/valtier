@@ -2,7 +2,8 @@
 
   python apps/web/scripts/gen-partner-art.py [<pexels-dir>]
 
-With <pexels-dir> (holding photos/<id>.jpg, see MEDIA.md) it also builds
+With <pexels-dir> (holding photos/<id>.jpg, see MEDIA.md) the cleat comes from
+Pexels 27299906 (full pair, marks removed, gilded) instead of cleats/cleat-gold, and it builds
 home/partner-halo.webp (white headphones, Pexels 3394666) and
 home/partner-volta.webp (profile in sunglasses, Pexels 34198837; chest patch
 painted out) as rembg (BiRefNet) cut-outs.
@@ -46,10 +47,50 @@ def depth_from_alpha(a, bulge_at=None, bulge_r=0.25):
     return Image.fromarray((d * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(2.5))
 
 
-def cleat():
+def cleat_source(src_dir):
+    """Full pair of cleats from Pexels 27299906: BiRefNet cut-out clipped below the
+    collar line (drops the ball behind), maker marks diffused away."""
+    from rembg import remove, new_session
+    im = Image.open(os.path.join(src_dir, "photos", "27299906.jpg")).convert("RGB")
+    W0, H0 = im.size
+    # Inpaint the swooshes / print: dark pixels in these boxes are filled by diffusion.
+    boxes = [(1450, 1500, 2000, 2250), (1500, 1700, 1580, 1850), (1940, 1330, 2110, 1580), (760, 2400, 1060, 2550), (1700, 2150, 2040, 2440)]
+    arr = np.asarray(im).astype(np.float32)
+    lum = arr @ np.array([0.3, 0.59, 0.11], np.float32)
+    mask = np.zeros(lum.shape, bool)
+    for x0, y0, x1, y1 in boxes:
+        mask[y0:y1, x0:x1] |= lum[y0:y1, x0:x1] < 110
+    m = Image.fromarray((mask * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(9))
+    mk = np.asarray(m) > 0
+    fill = arr.copy()
+    fill[mk] = np.nan
+    # Diffusion: repeatedly average known neighbours into the hole.
+    for _ in range(220):
+        pad = np.pad(fill, ((1, 1), (1, 1), (0, 0)), mode="edge")
+        nb = np.stack([pad[:-2, 1:-1], pad[2:, 1:-1], pad[1:-1, :-2], pad[1:-1, 2:]])
+        avg = np.nanmean(nb, axis=0)
+        upd = np.isnan(fill) & ~np.isnan(avg)
+        fill[upd] = avg[upd]
+        fill[mk] = np.where(np.isnan(avg[mk]), fill[mk], 0.6 * fill[mk] + 0.4 * avg[mk])
+    fill = np.nan_to_num(fill, nan=200)
+    im = Image.fromarray(fill.clip(0, 255).astype(np.uint8))
+    out = remove(im, session=new_session("birefnet-general"), post_process_mask=True)
+    keep = Image.new("L", (W0, H0), 0)
+    ImageDraw.Draw(keep).polygon([(0, 1700), (796, 1700), (1000, 1731), (1206, 1625), (1300, 1537), (1412, 1462), (1525, 1362), (1600, 1287),
+        (1650, 1225), (1675, 1187), (1725, 1181), (1812, 1225), (1875, 1269), (1950, 1350), (2037, 1450), (2087, 1550), (2125, 1650),
+        (2150, 1750), (2160, 1810), (W0, 1810), (W0, H0), (0, H0)], fill=255)
+    a = np.minimum(np.asarray(out.getchannel("A")), np.asarray(keep.filter(ImageFilter.GaussianBlur(2))))
+    out.putalpha(Image.fromarray(a))
+    return out.crop(out.getbbox())
+
+
+def cleat(src_dir=None):
     W, H = 1600, 900
-    src = Image.open(os.path.join(ROOT, "cleats", "cleat-gold.webp")).convert("RGBA")
-    src = src.crop(src.getbbox())
+    if src_dir:
+        src = cleat_source(src_dir)
+    else:
+        src = Image.open(os.path.join(ROOT, "cleats", "cleat-gold.webp")).convert("RGBA")
+        src = src.crop(src.getbbox())
     l, t, r, b = 0.279, 0.174, 0.267, 0.2
     bw, bh = int(W * (1 - l - r)), int(H * (1 - t - b))
     s = min(bw / src.size[0], bh / src.size[1])
@@ -61,6 +102,8 @@ def cleat():
     lo, hi = np.percentile(lum[arr[..., 3] > 0.5], [3, 99])
     k = np.clip((lum - lo) / max(1e-3, hi - lo), 0, 1)
     k = k * k * (3 - 2 * k)
+    if src_dir:
+        k = k ** 2.1  # the pink pair is uniformly light: push its mid-tones into the gold
     stops = np.array([[0.16, 0.08, 0.01], [0.55, 0.33, 0.05], [0.86, 0.64, 0.2], [1.0, 0.88, 0.52], [1.0, 0.98, 0.86]], np.float32)
     pos = np.linspace(0, 1, len(stops))
     rgb = np.stack([np.interp(k, pos, stops[:, c]) for c in range(3)], -1)
@@ -192,7 +235,7 @@ def volta(src_dir):
 
 if __name__ == "__main__":
     import sys
-    cleat()
+    cleat(sys.argv[1] if len(sys.argv) > 1 else None)
     forge()
     if len(sys.argv) > 1:
         halo(sys.argv[1])

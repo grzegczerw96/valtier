@@ -159,7 +159,6 @@ function initStage() {
         if (!reduced) {
           const e = Math.min(1, (p * (S - 100)) / 30);
           root.style.setProperty('--p-settle', settle(15 * (1 - e) * (1 - e)));
-          gsap.set(heroes, { y: 0, yPercent: 18 * (1 - e) * (1 - e) });
         }
         if (s.isActive) themeOn(true);
         navClip(0);
@@ -207,7 +206,9 @@ function initStage() {
     else { const e = Math.min(1, ((-top / h) * 100) / 30); yp = 18 * (1 - e) * (1 - e); }
     gsap.set(heroes, { y: 0, yPercent: reduced ? 0 : yp, opacity: 1 });
   };
-  ScrollTrigger.create({ trigger: wrap, start: 'top bottom', end: 'top top', onUpdate: () => { rise(); alignGrain(); }, onLeave: () => gsap.set(heroes, { yPercent: 18 }), onLeaveBack: () => gsap.set(heroes, { yPercent: 100 }) });
+  // One trigger for the whole time the wrapper is on screen (the reference re-poses
+  // in a rAF loop): rise() is a pure function of the wrapper's top edge.
+  ScrollTrigger.create({ trigger: wrap, start: 'top bottom', end: 'bottom top', onUpdate: () => { rise(); alignGrain(); }, onRefresh: rise });
   rise();
 
   // Pebble backdrop under the stage while it's on screen (hides the page bg seams).
