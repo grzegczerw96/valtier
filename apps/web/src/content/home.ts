@@ -89,7 +89,7 @@ export const partnerships: { heading: string; cta: { label: string; href: string
       name: 'FORGE',
       description:
         'Fuel partner. A signature FORGE bar with Nico on the box, a training-table recipe series and a run of limited “18” packs every season opener.',
-      art: { kind: 'cutout', src: m('home/partner-forge.webp'), alt: 'Three FORGE protein-bar boxes featuring Nico Valtier', scale: 0.66, y: 'calc(-12 * var(--ht-u))' },
+      art: { kind: 'cutout', src: m('home/partner-forge.webp'), alt: 'Three FORGE protein-bar boxes featuring Nico Valtier', scale: 0.66, y: 'calc(-4 * var(--ht-u))' },
     },
     {
       name: 'VOLTA',
@@ -101,7 +101,7 @@ export const partnerships: { heading: string; cta: { label: string; href: string
       name: 'Halo Audio',
       description:
         'Game-day arrivals with Halo on. Nico’s pre-game playlists, studio sessions and a signature colourway in the Halo Studio line.',
-      art: { kind: 'cutout', src: m('home/partner-halo.webp'), alt: 'Halo Studio headphones in white', scale: 0.62, y: 'calc(-14 * var(--ht-u))' },
+      art: { kind: 'cutout', src: m('home/partner-halo.webp'), alt: 'Halo Studio headphones in white', scale: 0.7, y: 'calc(-3 * var(--ht-u))' },
     },
   ],
 };

@@ -10,7 +10,7 @@ import os
 from PIL import Image, ImageDraw, ImageFilter
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "public", "textures")
-W, H = 960, 540
+W, H = 640, 360  # heavily blurred anyway; dithered + lossless keeps ramps band-free
 
 
 def shaft(polys, blur, alpha=255):
@@ -22,10 +22,16 @@ def shaft(polys, blur, alpha=255):
 
 
 def save(mask, name):
+    # Dither (±1.5 levels of blue-ish noise) so the soft ramps don't band once
+    # scaled up 2-3x and soft-light blended; keep the alpha lossless.
+    import numpy as np
+    a = np.asarray(mask).astype(np.float32)
+    rng = np.random.default_rng(18)
+    a = np.clip(a + rng.uniform(-1.5, 1.5, a.shape), 0, 255).astype(np.uint8)
     img = Image.new("RGBA", (W, H), (255, 255, 255, 0))
-    img.putalpha(mask)
+    img.putalpha(Image.fromarray(a))
     p = os.path.join(OUT, name)
-    img.save(p, "WEBP", quality=70, method=6)
+    img.save(p, "WEBP", lossless=True, method=6)
     print(name, os.path.getsize(p) // 1024, "KB")
 
 
