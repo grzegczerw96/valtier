@@ -67,7 +67,7 @@ export const partnerships: { heading: string; cta: { label: string; href: string
       name: 'Northline',
       description:
         'The signature partnership. Nico is the face of Northline football — custom game-day cleats, design sessions at the Northline lab in Harbor City, and a hand in the gear the next generation will wear.',
-      art: { kind: 'depth', src: m('home/partner-cleat.webp'), depth: m('home/partner-cleat-depth.webp'), aspect: 16 / 9, width: 'min(calc(var(--page-w) * 0.96), calc(170 * var(--ht-u)))', alt: 'The gold Northline signature cleat' },
+      art: { kind: 'depth', src: m('home/partner-cleat.webp'), depth: m('home/partner-cleat-depth.webp'), aspect: 16 / 9, width: 'min(calc(var(--page-w) * 0.84), calc(148 * var(--ht-u)))', alt: 'The gold Northline signature cleat' },
     },
     {
       name: 'Kestrel',
@@ -89,7 +89,7 @@ export const partnerships: { heading: string; cta: { label: string; href: string
       name: 'FORGE',
       description:
         'Fuel partner. A signature FORGE bar with Nico on the box, a training-table recipe series and a run of limited “18” packs every season opener.',
-      art: { kind: 'cutout', src: m('home/partner-forge.webp'), alt: 'Three FORGE protein-bar boxes featuring Nico Valtier', scale: 0.66, y: 'calc(-12 * var(--ht-u))' },
+      art: { kind: 'cutout', src: m('home/partner-forge.webp'), alt: 'Three FORGE protein-bar boxes featuring Nico Valtier', scale: 0.66, y: 'calc(-4 * var(--ht-u))' },
     },
     {
       name: 'VOLTA',
@@ -101,7 +101,7 @@ export const partnerships: { heading: string; cta: { label: string; href: string
       name: 'Halo Audio',
       description:
         'Game-day arrivals with Halo on. Nico’s pre-game playlists, studio sessions and a signature colourway in the Halo Studio line.',
-      art: { kind: 'cutout', src: m('home/partner-halo.webp'), alt: 'Halo Studio headphones in white', scale: 0.62, y: 'calc(-14 * var(--ht-u))' },
+      art: { kind: 'cutout', src: m('home/partner-halo.webp'), alt: 'Halo Studio headphones in white', scale: 0.7, y: 'calc(-3 * var(--ht-u))' },
     },
   ],
 };

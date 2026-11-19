@@ -210,7 +210,11 @@ const n = slides.length;
   .pt__sizer { visibility: hidden; grid-area: 1 / 1; align-self: start; padding: var(--pt-pad-y) 1.25rem; }
   .pt__sizer .heading, .pt__panel .heading { font-size: 1.25rem; }
   .pt__sizer p:last-child, .pt__panel p { margin-top: 1rem; font-size: .875rem; line-height: 1.43; text-wrap: pretty; }
-  .pt__panel { grid-area: 1 / 1; align-self: stretch; border-radius: .75rem; padding: var(--pt-pad-y) 1.25rem; background-color: var(--pt-panel-fill); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); overflow: hidden; }
+  .pt__panel { grid-area: 1 / 1; align-self: stretch; border-radius: .75rem; padding: var(--pt-pad-y) 1.25rem; overflow: hidden; }
+  /* Like the reference, the frosted panel only appears where the visual can run behind the copy. */
+  @media (max-width: 1219px), (max-width: 1299px) and (max-aspect-ratio: 7/5) {
+    .pt__panel { background-color: var(--pt-panel-fill); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+  }
   .pt__panel .heading { color: var(--color-bone); }
   .pt__panel p { color: rgba(246, 243, 239, .55); }
   .pt__cta { position: absolute; bottom: var(--pt-bottom); right: var(--pt-view-all-x); z-index: 20; }

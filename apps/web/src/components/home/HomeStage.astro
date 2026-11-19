@@ -276,9 +276,9 @@ const chars = Array.from(hero.storyCopy);
   /* ---------------------------------------------------------------- moments */
   .hs__moments { display: contents; }
   .sm-backdrop { position: absolute; inset: 0; overflow: hidden; isolation: isolate; background-color: var(--color-ink-deep); }
-  .sm-headline { position: absolute; inset: 0 0 auto; z-index: 5; overflow: hidden; pointer-events: none; }
+  .sm-headline { position: absolute; inset: 0 0 auto; z-index: 5; overflow: hidden; pointer-events: none; display: flex; justify-content: center; }
   .sm-headline h2 {
-    white-space: nowrap; text-align: center; padding-top: calc(.015 * var(--home-pane, 100vh));
+    flex: none; width: max-content; white-space: nowrap; text-align: center; padding-top: calc(.015 * var(--home-pane, 100vh));
     /* Our display face runs ~12.6% wider than the reference's: keep the cap height, match the width. */
     transform: scaleX(var(--display-squeeze, .874)); transform-origin: 50% 0;
     font-size: max(min(80px, 12vw), calc(21.76 * var(--vu))); letter-spacing: -.03em; line-height: .83;
