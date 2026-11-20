@@ -1,0 +1,40 @@
+---
+/** One off-field lane: fitted gradient title, intro copy (types itself in on
+ *  desktop), then the lane's content (slot). */
+import LaneTitle from '@valtier/ds/components/LaneTitle.astro';
+import TypeReveal from '@valtier/ds/components/TypeReveal.astro';
+interface Props { id: string; title: string; copy: string; copyWidth?: number; squeeze?: number; class?: string }
+const { id, title, copy, copyWidth = 520, squeeze, class: cls } = Astro.props;
+---
+<section id={id} class:list={['lane', `lane--${id}`, cls]} data-section={id} data-tone="dark" aria-label={title}>
+  <LaneTitle text={title} squeeze={squeeze} />
+  <div class="lane__copy" style={`--copy-w:${copyWidth}px`}>
+    <p class="lane__text lane__text--phone">{copy}</p>
+    <div class="lane__text--desk"><TypeReveal text={copy} class="lane__text" /></div>
+  </div>
+  <slot />
+</section>
+
+<script>
+  window.vDefer(async () => {
+    const { isPhone } = await import('@valtier/ds/motion/env');
+    if (matchMedia('(max-width: 767px)').matches && isPhone()) return;
+    const { initAllTypeReveals } = await import('@valtier/ds/motion/type-reveal');
+    document.querySelectorAll<HTMLElement>('.lane__text--desk').forEach((el) => initAllTypeReveals(el));
+  });
+</script>
+
+<style>
+  .lane { position: relative; overflow-x: clip; }
+  .lane__copy { position: relative; z-index: 10; margin-top: 1rem; padding: 0 1.5rem 2rem; }
+  .lane__text { max-width: var(--copy-w); font-size: 16px; line-height: 1.65; color: rgba(244, 239, 230, 0.88); }
+  .lane__text--desk { display: none; }
+  @media (min-width: 768px) {
+    .lane__copy {
+      margin-top: calc(-6.5 * var(--of-vw)); padding: 0 calc(var(--page-x) + 11 * var(--of-vw)) min(calc(7 * var(--of-vh)), calc(4.375 * var(--of-vw)));
+    }
+    .lane__text--phone { display: none; }
+    .lane__text--desk { display: block; }
+    .lane__text--desk :global(.lane__text) { max-width: var(--copy-w); font-size: 17px; line-height: 1.7; color: rgba(244, 239, 230, 0.88); }
+  }
+</style>

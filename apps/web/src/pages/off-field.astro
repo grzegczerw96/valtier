@@ -1,0 +1,83 @@
+---
+import Base from '../layouts/Base.astro';
+import PageBase from '@valtier/ds/components/PageBase.astro';
+import ImageRail from '@valtier/ds/components/ImageRail.astro';
+import BrandTicker from '@valtier/ds/components/BrandTicker.astro';
+import PieceMarquee from '@valtier/ds/components/PieceMarquee.astro';
+import HeroOff from '../components/off-field/HeroOff.astro';
+import QuoteOff from '../components/off-field/QuoteOff.astro';
+import LaneNav from '../components/off-field/LaneNav.astro';
+import Lane from '../components/off-field/Lane.astro';
+import LaneLogos from '../components/off-field/LaneLogos.astro';
+import DigitalGrid from '../components/off-field/DigitalGrid.astro';
+import Features from '../components/off-field/Features.astro';
+import { hero, lanes, laneSqueeze, fashion, digital, appearances, pieces } from '../content/off-field';
+import { footerVariants, site } from '../site.config';
+---
+<Base
+  title="Off-Field · Nico Valtier"
+  description="Nico Valtier off the field: fashion, the feed, the screen and the features."
+  footer={footerVariants.foundation}
+  heroFont
+  preload={[{ href: hero.print.src, as: 'image', type: 'image/webp', fetchpriority: 'high' }]}
+>
+  <PageBase base="#2D2D2D" texture="pebble" />
+  <div class="off-top">
+    <HeroOff />
+    <QuoteOff />
+    <div class="off-leak" aria-hidden="true"><div></div></div>
+    <div class="off-leak-touch" aria-hidden="true"></div>
+  </div>
+
+  <div class="off-lanes">
+    <LaneNav />
+    <Lane id="fashion" title={lanes.fashion} copy={fashion.copy} squeeze={laneSqueeze.fashion} class="off-lane--fashion">
+      <ImageRail items={fashion.items} label="Fashion imagery" />
+      <LaneLogos marks={fashion.logos} label="Fashion weeks and titles" />
+    </Lane>
+    <Lane id="digital" title={lanes.digital} copy={digital.copy} copyWidth={460} squeeze={laneSqueeze.digital} class="off-lane--digital">
+      <DigitalGrid />
+      <div class="off-ticker"><BrandTicker marks={site.partners} /></div>
+    </Lane>
+    <Lane id="appearances" title={lanes.appearances} copy={appearances.copy} squeeze={laneSqueeze.appearances} class="off-lane--appearances">
+      <ImageRail items={appearances.items} label="Appearances imagery" />
+      <LaneLogos marks={appearances.logos} label="Networks and outlets" rowScale={1.5} />
+    </Lane>
+    <Features />
+  </div>
+
+  <div data-section="off-pieces"><PieceMarquee items={pieces.items} label="Seen on the turf: the Valtier 18 frames" /></div>
+</Base>
+
+<style>
+  .off-top { position: relative; overflow-x: clip; }
+  /* Soft window-light leak over hero and quote (same shape as On-Field). */
+  .off-leak {
+    pointer-events: none; position: absolute; z-index: 30; left: -20vw; top: -55vw; width: 250vw; aspect-ratio: 2549 / 2185;
+    filter: blur(clamp(48px, 16vw, 400px)); mix-blend-mode: soft-light;
+  }
+  .off-leak > div {
+    width: 100%; height: 100%; background: #fff;
+    clip-path: polygon(0% 9.9%, 17.82% 1.39%, 72.02% 0%, 99.97% 33.56%, 69.56% 19.77%, 70.92% 39.9%, 44.89% 28.61%, 56.86% 81.25%, 50.92% 100%, 0.51% 23.6%);
+  }
+  .off-leak-touch {
+    display: none; pointer-events: none; position: absolute; z-index: 30; left: -30vw; top: -40vw; width: 170vw; height: 140vw;
+    background: radial-gradient(closest-side, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0) 72%);
+  }
+  @media (hover: none) { .off-leak { display: none; } .off-leak-touch { display: block; } }
+
+  .off-lanes { position: relative; overflow-x: clip; }
+  @media (max-width: 767px) { .off-lanes { display: flex; flex-direction: column; } }
+  @media (min-width: 768px) { .off-lanes { overflow-anchor: none; } }
+
+  .off-lanes :global(.off-lane--fashion), .off-lanes :global(.off-lane--appearances) { padding: calc(5 * var(--of-pvh)) 0 calc(8 * var(--of-pvh)); }
+  .off-lanes :global(.off-lane--digital) { padding: calc(5 * var(--of-pvh)) 0 calc(6 * var(--of-pvh)); overflow-x: visible; }
+  .off-ticker { position: relative; z-index: 0; }
+  @media (min-width: 768px) {
+    .off-lanes :global(.off-lane--fashion), .off-lanes :global(.off-lane--appearances) {
+      padding: min(calc(6 * var(--of-vh)), calc(3.75 * var(--of-vw))) 0 min(calc(12 * var(--of-vh)), calc(7.5 * var(--of-vw)));
+    }
+    .off-lanes :global(.off-lane--digital) { padding-block: min(calc(6 * var(--of-vh)), calc(3.75 * var(--of-vw))); }
+    .off-ticker { margin-top: calc(-1 * min(calc(7 * var(--of-vh)), calc(4.375 * var(--of-vw)))); }
+  }
+</style>

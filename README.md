@@ -1,7 +1,7 @@
-# Valtier — On-Field
+# Valtier — On-Field, Home, Off-Field
 
-A fictional athlete site (Nico Valtier, #18, Northmark Wolves) whose On-Field page
-reproduces the layout, motion system, timings and behaviour of a reference design,
+A fictional athlete site (Nico Valtier, #18, Northmark Wolves) whose pages
+reproduce the layout, motion system, timings and behaviour of a reference design,
 with its own brand, copy, data, fonts and media. Built with Astro (static), GSAP +
 ScrollTrigger and Lenis; no client framework.
 
@@ -10,14 +10,16 @@ packages/ds/        @valtier/ds — the design system (separate package)
   src/tokens/       tokens.css: colour, type scale, easings, layout units, z-index, themes
   src/styles/       fonts.css (self-hosted, metric-matched fallbacks), base.css (reset, type roles, DotReveal, bg layers)
   src/motion/       framework-free TS: scroll (Lenis), dot-reveal, transitions/veil, menu, sound,
-                    drift marquee, snap-rail, cursor, scramble, tone switching, inview helpers
+                    drift marquee (+ pause/centre), snap-rail, image-rail, type-reveal, fit-title,
+                    film player, cursor, scramble, tone switching, inview helpers
   src/components/   Astro: SiteNav (+menu), Footer (+panel, signature, partners), Veil, SoundToggle,
-                    Cursor, BgLayers, Button, DotReveal, Logo, SocialIcon, Boot
+                    Cursor, BgLayers, Button, DotReveal, Logo, SocialIcon, Boot, LaneTitle,
+                    TypeReveal, ImageRail, BrandTicker, Wordmark, PhoneMock, PieceMarquee
   scripts-build-fonts.py   rebuilds the subset webfonts from Fontsource sources
 apps/web/           the site
-  src/content/      on-field.ts — every number and string on the page
-  src/components/on-field/   page sections
-  src/pages/        on-field, design-system (living style guide), placeholders for the other nav items
+  src/content/      on-field.ts, home.ts, off-field.ts — every number and string on each page
+  src/components/   on-field/, home/, off-field/ — page sections
+  src/pages/        index, on-field, off-field, design-system (living style guide), placeholders for the other nav items
   scripts/          gen-textures.py (procedural pebble/grass/light), gen-placeholders.py, serve.mjs
 ```
 

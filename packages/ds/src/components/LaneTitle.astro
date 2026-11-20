@@ -1,0 +1,32 @@
+---
+/** Giant gradient headline fitted to a bleed box 103.5 page-units wide (the text
+ *  is sized so its width fills the box; see motion/fit-title.ts). The display face
+ *  is ~12.6% wider than the original, so glyphs are squeezed horizontally
+ *  (--squeeze) to keep the reference height for the same width. */
+interface Props { text: string; gradient?: string; class?: string; squeeze?: number }
+const { text, gradient = 'linear-gradient(180deg, #9E6DE9 49%, rgba(80, 46, 132, 0) 100%)', class: cls, squeeze = 0.874 } = Astro.props;
+---
+<div class:list={['lane-title', cls]} data-lane-title style={`--squeeze:${squeeze}`} aria-hidden="true">
+  <h2 class="display lane-title__text" data-lane-title-text style={`background-image:${gradient}`}>{text}</h2>
+</div>
+
+<script>
+  window.vDefer(async () => {
+    const { initAllFitTitles } = await import('../motion/fit-title');
+    initAllFitTitles();
+  });
+</script>
+
+<style is:global>
+  .lane-title {
+    pointer-events: none; position: relative; z-index: -1; user-select: none;
+    margin-left: calc(var(--page-x) - 1.9 * var(--of-vw)); width: calc(103.5 * var(--of-vw));
+  }
+  .lane-title__text {
+    width: max-content; white-space: nowrap; line-height: 0.83; letter-spacing: -0.03em;
+    font-size: calc(15.4 * var(--of-vw) / var(--squeeze, 1));
+    transform: scaleX(var(--squeeze, 1)); transform-origin: 0 50%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  @media (min-width: 768px) { .lane-title__text { font-size: calc(14 * var(--of-vw) / var(--squeeze, 1)); } }
+</style>

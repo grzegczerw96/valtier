@@ -46,6 +46,12 @@ export const footerVariants: Record<string, FooterCta> = {
     cta: { label: 'Off-Field', href: B + '/off-field' },
     image: { src: B + '/media/footer-player.webp', width: 1200, height: 1200, alt: 'Nico Valtier seen from behind, ball in the air', shift: 0.45 },
   },
+  foundation: {
+    headline: ['Leave the', 'city better'],
+    phoneHeadline: ['Leave the', 'city', 'better'],
+    cta: { label: 'Foundation', href: B + '/foundation' },
+    image: { src: B + '/media/off/footer-portrait.webp', width: 1200, height: 1200, alt: 'Nico Valtier in chained sunglasses, chin on his hand', shift: 0.45 },
+  },
   onField: {
     headline: ['Built for', 'the big stage'],
     phoneHeadline: ['Built', 'for the big', 'stage'],

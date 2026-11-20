@@ -1,0 +1,37 @@
+---
+import DotReveal from '@valtier/ds/components/DotReveal.astro';
+import { quote } from '../../content/off-field';
+const label = quote.map((l) => l.map((s) => s.t).join('')).join(' ');
+---
+<section class="ofq" data-tone="dark" data-section="off-quote" aria-label={label} data-off-quote>
+  <blockquote class="display ofq__text">
+    {quote.map((line, i) => (
+      <DotReveal class="ofq__line" delay={i ? 0.14 : undefined}>
+        {line.map((s) => (s.accent ? <span class="ofq__accent">{s.t}</span> : s.t))}
+      </DotReveal>
+    ))}
+  </blockquote>
+</section>
+
+<script>
+  window.vDefer(async () => {
+    const { initAllDotReveals } = await import('@valtier/ds/motion/dot-reveal');
+    const { whenNear } = await import('@valtier/ds/motion/inview');
+    const root = document.querySelector<HTMLElement>('[data-off-quote]');
+    if (root) whenNear(root, () => window.vDefer(() => initAllDotReveals(root)));
+  });
+</script>
+
+<style>
+  .ofq {
+    position: relative; display: flex; align-items: center; justify-content: center;
+    padding: calc(10 * var(--of-pvh)) 1rem calc(8 * var(--of-pvh));
+  }
+  .ofq__text { text-align: center; font-size: var(--quote-fs, 14vw); line-height: 1.02; color: #f4efe6; }
+  .ofq__text :global(.ofq__line) { display: block; }
+  .ofq__accent { color: #9e6de9; }
+  @media (min-width: 768px) {
+    .ofq { min-height: min(calc(80 * var(--of-vh)), calc(50 * var(--of-vw))); padding-block: 0; }
+    .ofq__text { --quote-fs: clamp(44px, calc(9 * var(--vu)), 176px); }
+  }
+</style>

@@ -24,6 +24,13 @@ export function onHorizontalWheel(el: HTMLElement, fn: (dx: number, e: WheelEven
 
 export interface DriftHandle {
   dragDistance: () => number;
+  /** Stop the automatic drift (drag and wheel still work); `resume` restarts it. */
+  pause: () => void;
+  resume: () => void;
+  /** Glide (.7s, cubic in-out) so `el` sits in the viewport centre. Returns whether
+   *  the target landed in the other half of the loop (so its twin is the one shown). */
+  centerOn: (el: HTMLElement) => { flipped: boolean };
+  isCentering: () => boolean;
   destroy: () => void;
 }
 
@@ -43,6 +50,8 @@ export function initDrift(track: HTMLElement, { baseSpeed = 0.35, mirror = false
   let visible = true;
   let half = track.scrollWidth / 2;
   let dragDist = 0;
+  let paused = false;
+  let glide = 0;
 
   const wrap = () => {
     if (half > 0) x = -((((-x) % half) + half) % half);
@@ -60,7 +69,7 @@ export function initDrift(track: HTMLElement, { baseSpeed = 0.35, mirror = false
       raf = 0;
       return;
     }
-    if (performance.now() <= holdUntil) {
+    if (paused || glide || performance.now() <= holdUntil) {
       lastY = window.scrollY;
       raf = requestAnimationFrame(loop);
       return;
@@ -156,9 +165,46 @@ export function initDrift(track: HTMLElement, { baseSpeed = 0.35, mirror = false
   track.addEventListener('pointerup', () => (downAt = performance.now()));
   window.addEventListener('click', onClickCapture, true);
 
+  const stopGlide = () => {
+    cancelAnimationFrame(glide);
+    glide = 0;
+  };
+  track.addEventListener('pointerdown', stopGlide);
+  const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
   return {
     dragDistance: () => dragDist,
+    pause: () => {
+      paused = true;
+    },
+    resume: () => {
+      paused = false;
+      fling = 0;
+      wrap();
+      paint();
+      start();
+    },
+    centerOn: (el: HTMLElement) => {
+      measure();
+      const r = el.getBoundingClientRect();
+      let to = x + (window.innerWidth / 2 - (r.left + r.width / 2));
+      let laps = 0;
+      while (half > 0 && to <= -half) { to += half; laps++; }
+      while (half > 0 && to > 0) { to -= half; laps++; }
+      stopGlide();
+      const from = x, t0 = performance.now(), dur = reduced ? 0 : 700;
+      const step = (now: number) => {
+        const p = dur ? Math.min(1, (now - t0) / dur) : 1;
+        x = from + (to - from) * easeInOut(p);
+        paint();
+        glide = p < 1 ? requestAnimationFrame(step) : 0;
+      };
+      glide = requestAnimationFrame(step);
+      return { flipped: laps % 2 === 1 };
+    },
+    isCentering: () => glide !== 0,
     destroy: () => {
+      stopGlide();
       cancelAnimationFrame(raf);
       io.disconnect();
       ro.disconnect();

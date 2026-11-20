@@ -1,0 +1,46 @@
+---
+/** Partner ticker: wordmarks on an endless strip. Desktop: drift track that
+ *  follows the scroll (mirrored, 0.45 px/frame) and can be dragged. Phones: a plain
+ *  70 s CSS loop. */
+import Wordmark from './Wordmark.astro';
+import type { Partner } from '../lib/types';
+interface Props { marks: Partner[]; label?: string; color?: string; class?: string }
+const { marks, label = 'Brand partners', color = '#6f6a63', class: cls } = Astro.props;
+---
+<div class:list={['ticker', cls]} aria-label={label} role="region" data-brand-ticker style={`--ticker-color:${color}`}>
+  <div class="ticker__track" data-ticker-track>
+    {[0, 1].map((half) => (
+      <div class="ticker__set" aria-hidden={half === 1 ? 'true' : undefined}>
+        {[0, 1, 2].map((rep) => marks.map((p) => (
+          <Wordmark name={p.name} style={p.style} scale={p.scale} tracking={p.tracking} weight={p.weight} label={half === 0 && rep === 0} />
+        )))}
+      </div>
+    ))}
+  </div>
+</div>
+
+<script>
+  window.vDefer(async () => {
+    const { whenNear } = await import('../motion/inview');
+    const { isPhone } = await import('../motion/env');
+    if (isPhone()) return;
+    document.querySelectorAll<HTMLElement>('[data-brand-ticker]').forEach((el) =>
+      whenNear(el, () => window.vDefer(async () => {
+        const { initDrift } = await import('../motion/drift');
+        const track = el.querySelector<HTMLElement>('[data-ticker-track]');
+        if (track) initDrift(track, { baseSpeed: 0.45, mirror: true });
+      })),
+    );
+  });
+</script>
+
+<style is:global>
+  .ticker { position: relative; width: 100%; overflow-x: clip; padding-block: 2rem; color: var(--ticker-color); --wm-h: clamp(26px, 2.8vw, 44px); }
+  .ticker__track { display: flex; width: max-content; min-height: calc(var(--wm-h) * 2); user-select: none; }
+  .ticker__set { display: flex; flex-shrink: 0; align-items: center; gap: clamp(44px, 5vw, 84px); padding-right: clamp(44px, 5vw, 84px); }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
+    .ticker__track { animation: v-ticker 70s linear infinite; }
+  }
+  @keyframes v-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @media (prefers-reduced-motion: reduce) { .ticker__track { animation: none; } }
+</style>

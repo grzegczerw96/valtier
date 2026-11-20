@@ -360,3 +360,14 @@ const lastEvent = (name: string) => !!(window as any).__vReveal?.[name];
 export function initAllDotReveals(scope: ParentNode = document) {
   scope.querySelectorAll<HTMLElement>('[data-dot-reveal]').forEach(initDotReveal);
 }
+
+/** Shows a DotReveal heading in its final state at once (no dots, no wipe). */
+export function revealNow(root: HTMLElement) {
+  const content = root.querySelector<HTMLElement>(':scope > .dr-content');
+  const canvas = root.querySelector<HTMLElement>(':scope > .dr-canvas');
+  const ghost = root.querySelector<HTMLElement>(':scope > .dr-ghost');
+  if (content) content.style.clipPath = 'none';
+  if (canvas) canvas.style.display = 'none';
+  if (ghost) ghost.style.display = 'none';
+  (root as any)._dr = () => {};
+}

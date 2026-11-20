@@ -1,0 +1,179 @@
+---
+/** Single-row product marquee (cut-outs on transparent 2:1 canvases).
+ *  Desktop: drift row (x3 per half) that follows the scroll and can be dragged;
+ *  hovering a piece scales it and a yellow arrow bubble trails the cursor.
+ *  Phones: looping snap rail; a tap opens the piece full-screen with its link. */
+interface Piece { src: string; title: string; href?: string }
+interface Props { items: Piece[]; label?: string; speed?: number }
+const { items, label = 'Featured pieces', speed = 0.42 } = Astro.props;
+const row = [...items, ...items, ...items];
+const arrow = (cls: string) => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 L17 7"/><path d="M8 7 H17 V16"/></svg>`;
+---
+<section class="pieces" data-tone="dark" aria-label={label} data-pieces data-speed={speed}>
+  <div class="pieces__row">
+    <div class="pieces__track" data-pieces-track>
+      {[0, 1].map((half) => (
+        <div class="pieces__set" aria-hidden={half === 1 ? 'true' : undefined}>
+          {row.map((p, i) => {
+            const decorative = half === 1 || i >= items.length;
+            const body = (
+              <span class="pieces__img">
+                <img src={p.src} alt="" width="960" height="480" loading="lazy" decoding="async" draggable="false" />
+                {p.href && <span class="label-sm pieces__tag">{p.title}<Fragment set:html={arrow('pieces__tag-arrow')} /></span>}
+              </span>
+            );
+            return p.href ? (
+              <a class="pieces__cell" href={p.href} draggable="false" tabindex={decorative ? -1 : undefined} aria-label={p.title} data-sound-card data-piece-link>
+                {body}
+                <span class="pieces__bubble" aria-hidden="true" data-piece-bubble><Fragment set:html={arrow('pieces__bubble-arrow')} /></span>
+              </a>
+            ) : <div class="pieces__cell">{body}</div>;
+          })}
+        </div>
+      ))}
+    </div>
+  </div>
+  <ul class="pieces__phone" data-pieces-phone aria-label={label}>
+    {[0, 1, 2].map((copy) => items.map((p) => (
+      <li class="pieces__phone-item">
+        <button type="button" class="pieces__phone-btn" aria-label={p.title} data-piece-open data-src={p.src} data-title={p.title} data-href={p.href} tabindex={copy === 1 ? undefined : -1}>
+          <img src={p.src} alt="" width="960" height="480" loading="lazy" decoding="async" draggable="false" />
+        </button>
+      </li>
+    )))}
+  </ul>
+</section>
+
+<script>
+  window.vDefer(async () => {
+    const { whenNear } = await import('../motion/inview');
+    const root = document.querySelector<HTMLElement>('[data-pieces]');
+    if (root) whenNear(root, () => window.vDefer(async () => {
+      const { isPhone } = await import('../motion/env');
+      if (isPhone()) {
+        const { initSnapRail } = await import('../motion/snap-rail');
+        const list = root.querySelector<HTMLElement>('[data-pieces-phone]');
+        if (list) initSnapRail(list, { loop: true });
+        root.querySelectorAll<HTMLButtonElement>('[data-piece-open]').forEach((b) => b.addEventListener('click', () => openPiece(b)));
+        return;
+      }
+      const { initDrift } = await import('../motion/drift');
+      const track = root.querySelector<HTMLElement>('[data-pieces-track]');
+      if (!track) return;
+      initDrift(track, { baseSpeed: parseFloat(root.dataset.speed || '0.42') });
+      // Arrow bubble trailing the cursor inside each linked piece (lerp .14).
+      track.querySelectorAll<HTMLElement>('[data-piece-link]').forEach((a) => {
+        const b = a.querySelector<HTMLElement>('[data-piece-bubble]');
+        if (!b) return;
+        const s = { x: 0, y: 0, tx: 0, ty: 0, raf: 0 };
+        const step = () => {
+          s.x += (s.tx - s.x) * 0.14;
+          s.y += (s.ty - s.y) * 0.14;
+          b.style.left = `${s.x.toFixed(1)}px`;
+          b.style.top = `${s.y.toFixed(1)}px`;
+          s.raf = Math.abs(s.tx - s.x) + Math.abs(s.ty - s.y) > 0.3 ? requestAnimationFrame(step) : 0;
+        };
+        const aim = (e: PointerEvent, snap = false) => {
+          if (e.pointerType !== 'mouse') return;
+          const r = a.getBoundingClientRect();
+          s.tx = e.clientX - r.left + 18;
+          s.ty = e.clientY - r.top + 22;
+          if (snap) { s.x = s.tx; s.y = s.ty; }
+          if (!s.raf) s.raf = requestAnimationFrame(step);
+        };
+        a.addEventListener('pointerenter', (e) => aim(e, true));
+        a.addEventListener('pointermove', (e) => aim(e));
+      });
+    }));
+
+    function openPiece(btn: HTMLButtonElement) {
+      const dlg = document.createElement('div');
+      dlg.className = 'piece-dlg';
+      dlg.setAttribute('role', 'dialog');
+      dlg.setAttribute('aria-modal', 'true');
+      dlg.setAttribute('aria-label', btn.dataset.title || 'Featured piece');
+      dlg.innerHTML = `<button type="button" class="piece-dlg__close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+        <div class="piece-dlg__img"><img alt="" src="${btn.dataset.src}"></div>
+        <div class="piece-dlg__bar"><p class="label piece-dlg__title"></p>${btn.dataset.href ? `<a class="label piece-dlg__view" href="${btn.dataset.href}">View<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 L17 7"/><path d="M8 7 H17 V16"/></svg></a>` : ''}</div>`;
+      dlg.querySelector('.piece-dlg__title')!.textContent = btn.dataset.title || '';
+      dlg.querySelector<HTMLImageElement>('img')!.alt = btn.dataset.title || '';
+      const html = document.documentElement;
+      const prev = html.style.overflow;
+      html.style.overflow = 'hidden';
+      document.body.append(dlg);
+      requestAnimationFrame(() => dlg.classList.add('is-open'));
+      const close = () => {
+        html.style.overflow = prev;
+        dlg.remove();
+        window.removeEventListener('keydown', onKey);
+        btn.focus({ preventScroll: true });
+      };
+      const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
+      window.addEventListener('keydown', onKey);
+      dlg.addEventListener('click', (e) => {
+        if ((e.target as Element).closest('.piece-dlg__img, .piece-dlg__bar') && !(e.target as Element).closest('.piece-dlg__close')) return;
+        close();
+      });
+      dlg.querySelector<HTMLButtonElement>('.piece-dlg__close')!.focus({ preventScroll: true });
+    }
+  });
+</script>
+
+<style is:global>
+  .pieces { position: relative; overflow: hidden; padding-block: 2rem; color: var(--color-bone); }
+  @media (min-width: 768px) { .pieces { padding-block: 4rem; } }
+  .pieces__row { margin-block: -5rem; overflow: hidden; padding-block: 5rem; }
+  .pieces__track { display: flex; width: max-content; align-items: center; }
+  .pieces__set { display: flex; flex-shrink: 0; align-items: center; }
+  .pieces__cell { position: relative; display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 228px; height: 200px; }
+  .pieces__img { position: relative; display: block; width: 196px; height: 150px; transition: transform 0.5s var(--ease-out); }
+  .pieces__cell:hover .pieces__img { transform: scale(1.07); }
+  .pieces__img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+  .pieces__tag {
+    pointer-events: none; position: absolute; bottom: 4px; left: 50%; display: flex; align-items: center; gap: 6px; white-space: nowrap;
+    padding: 6px 12px; border-radius: 9999px; background: var(--color-bone); color: var(--color-ink-deep);
+    transform: translateX(-50%); opacity: 0; transition: opacity 0.3s;
+  }
+  .pieces__tag-arrow { width: 12px; height: 12px; flex-shrink: 0; }
+  .pieces__cell:focus-visible .pieces__tag { opacity: 1; }
+  @media (hover: none) { .pieces__tag { opacity: 1; } }
+  .pieces__bubble {
+    pointer-events: none; position: absolute; left: 50%; top: 60%; z-index: 10; display: none; align-items: center; justify-content: center;
+    width: 40px; height: 40px; border-radius: 9999px; background: var(--color-cta-yellow); color: var(--color-ink-deep);
+    transform: scale(0); transition: transform 0.2s var(--ease-out);
+  }
+  @media (hover: hover) { .pieces__bubble { display: flex; } }
+  .pieces__cell:hover .pieces__bubble { transform: scale(1); }
+  .pieces__bubble-arrow { width: 16px; height: 16px; }
+  @media (min-width: 768px) {
+    .pieces__cell { width: min(316px, calc(39.5 * var(--of-vh))); height: min(316px, calc(39.5 * var(--of-vh))); }
+    .pieces__img { width: min(264px, calc(33 * var(--of-vh))); height: min(236px, calc(29.5 * var(--of-vh))); }
+  }
+  .pieces__phone { display: none; }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
+    .pieces__row { display: none; }
+    .pieces__phone {
+      display: flex; gap: 16px; margin: 0; padding-inline: 24px; scroll-padding-inline: 24px; list-style: none;
+      overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain;
+    }
+    .pieces__phone::-webkit-scrollbar { display: none; }
+    .pieces__phone-item { flex-shrink: 0; scroll-snap-align: start; }
+    .pieces__phone-btn { position: relative; display: block; height: clamp(120px, 18svh, 190px); aspect-ratio: 2 / 1; }
+    .pieces__phone-btn img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  }
+  .piece-dlg {
+    position: fixed; inset: 0; z-index: var(--z-modal); display: flex; flex-direction: column;
+    background: rgba(20, 16, 22, 0.96); color: var(--color-bone); opacity: 0; transition: opacity 0.3s;
+  }
+  .piece-dlg.is-open { opacity: 1; }
+  .piece-dlg__close {
+    position: absolute; right: 1rem; top: 1rem; z-index: 1; display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; border-radius: 9999px; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(0, 0, 0, 0.35);
+  }
+  .piece-dlg__close svg { width: 20px; height: 20px; }
+  .piece-dlg__img { position: relative; flex: 1; margin: 76px 24px 16px; }
+  .piece-dlg__img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  .piece-dlg__bar { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; padding: 8px 24px max(24px, env(safe-area-inset-bottom)); }
+  .piece-dlg__view { display: flex; flex-shrink: 0; align-items: center; gap: 8px; height: 44px; padding-inline: 20px; border-radius: 9999px; background: var(--color-bone); color: var(--color-ink-deep); }
+  .piece-dlg__view svg { width: 14px; height: 14px; }
+</style>
