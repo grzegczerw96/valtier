@@ -1,0 +1,166 @@
+---
+/** Lane switcher. Desktop: sits large and centred under the quote, sticks to the
+ *  top and condenses into a frosted pill once the lanes start; an underline springs
+ *  to the active lane. Phones: a small pill pinned bottom-left while the lanes are
+ *  on screen (hidden as their end comes up). */
+import { lanes } from '../../content/off-field';
+const ids = Object.keys(lanes) as (keyof typeof lanes)[];
+---
+<div class="lnav-sentinel" aria-hidden="true" data-lnav-top></div>
+<div class="lnav-end" aria-hidden="true" data-lnav-end></div>
+<nav class="lnav" aria-label="Off-field lanes" data-lnav>
+  <div class="lnav__pill" data-lnav-pill>
+    {ids.map((id, i) => (
+      <button type="button" class="display lnav__btn" data-lnav-btn={id} data-active={i === 0 ? 'true' : 'false'} aria-current={i === 0 ? 'true' : undefined}>
+        {lanes[id]}<span class="lnav__hit" aria-hidden="true"></span>
+      </button>
+    ))}
+    <span class="lnav__line" aria-hidden="true" data-lnav-line></span>
+  </div>
+</nav>
+
+<script>
+  window.vDefer(async () => {
+    const { ScrollTrigger } = await import('@valtier/ds/motion/gsap');
+    const { prefersReducedMotion } = await import('@valtier/ds/motion/env');
+    const { scrollToY } = await import('@valtier/ds/motion/scroll');
+    const nav = document.querySelector<HTMLElement>('[data-lnav]');
+    const pill = document.querySelector<HTMLElement>('[data-lnav-pill]');
+    const top = document.querySelector<HTMLElement>('[data-lnav-top]');
+    const end = document.querySelector<HTMLElement>('[data-lnav-end]');
+    const line = document.querySelector<HTMLElement>('[data-lnav-line]');
+    if (!nav || !pill || !top || !end || !line) return;
+    const ids = ['fashion', 'digital', 'appearances', 'features'];
+    const btns = Array.from(pill.querySelectorAll<HTMLButtonElement>('[data-lnav-btn]'));
+    const clampv = (lo: number, k: number, hi: number, w: number) => Math.min(hi, Math.max(lo, (k * w) / 100));
+
+    const place = () => {
+      const a = pill.querySelector<HTMLElement>('[data-active="true"]');
+      if (!a) return;
+      line.style.width = `${a.offsetWidth}px`;
+      line.style.transform = `translate(${a.offsetLeft}px, ${a.offsetTop + a.offsetHeight + 5}px)`;
+      line.style.opacity = '1';
+    };
+    // Follow layout changes (font-size / padding transitions) for ~640 ms.
+    let follow = 0;
+    const track = (ms = 640) => {
+      const until = performance.now() + ms;
+      cancelAnimationFrame(follow);
+      const f = () => { place(); if (performance.now() < until) follow = requestAnimationFrame(f); };
+      follow = requestAnimationFrame(f);
+    };
+
+    let current = 'fashion';
+    const setActive = (id: string) => {
+      if (id === current) return;
+      current = id;
+      btns.forEach((b) => {
+        const on = b.dataset.lnavBtn === id;
+        b.dataset.active = String(on);
+        if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+      });
+      place();
+    };
+
+    // Active lane: the section crossing the band 30%–40% from the top.
+    const seen = new Set<string>();
+    let last = 'fashion';
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        const id = (e.target as HTMLElement).id;
+        if (e.isIntersecting) { seen.add(id); last = id; }
+        else { seen.delete(id); if (last === id) last = [...seen].pop() ?? last; }
+      }
+      setActive(last);
+    }, { rootMargin: '-30% 0px -60% 0px' });
+    ids.forEach((id) => { const el = document.getElementById(id); if (el) io.observe(el); });
+    const probe = () => {
+      const y = 0.35 * innerHeight;
+      for (const id of ids) {
+        const r = document.getElementById(id)?.getBoundingClientRect();
+        if (r && r.top <= y && r.bottom > y) { last = id; setActive(id); return; }
+      }
+    };
+    ScrollTrigger.addEventListener('refresh', () => requestAnimationFrame(probe));
+
+    let compact = false;
+    if (!matchMedia('(min-width: 768px)').matches) {
+      new IntersectionObserver(([e]) => nav.toggleAttribute('data-hide', !!e?.isIntersecting), { rootMargin: '0px 0px 80px 0px' }).observe(end);
+    } else {
+      let queued = false;
+      const check = () => {
+        queued = false;
+        const c = top.getBoundingClientRect().top < 0;
+        if (c !== compact) { compact = c; nav.toggleAttribute('data-compact', c); track(); }
+      };
+      const onScroll = () => { if (!queued) { queued = true; requestAnimationFrame(check); } };
+      new IntersectionObserver(check, { threshold: 0 }).observe(top);
+      addEventListener('scroll', onScroll, { passive: true });
+      check();
+    }
+    addEventListener('resize', () => track());
+    document.fonts?.ready.then(place);
+    place();
+
+    btns.forEach((b) => b.addEventListener('click', () => {
+      const t = document.getElementById(b.dataset.lnavBtn!);
+      if (!t) return;
+      const phone = !matchMedia('(min-width: 768px)').matches;
+      let y = t.getBoundingClientRect().top + scrollY - (phone ? 16 : 100);
+      if (!phone) {
+        const w = innerWidth;
+        // Before the nav condenses its padding is larger: aim for the condensed height.
+        if (!compact) y -= nav.offsetHeight - (clampv(20, 2.4, 25, w) + clampv(12, 1.6, 18, w) + 11 + 13 + 2 + clampv(13, 1.9, 27, w));
+        y = Math.max(y, top.getBoundingClientRect().top + scrollY + 1);
+      }
+      scrollToY(y, { duration: 1.1, immediate: prefersReducedMotion() });
+      t.setAttribute('tabindex', '-1');
+      t.focus({ preventScroll: true });
+    }));
+  });
+</script>
+
+<style>
+  .lnav-sentinel { height: 1px; width: 100%; }
+  .lnav-end { display: none; height: 1px; width: 100%; }
+  .lnav {
+    pointer-events: none; position: sticky; top: 0; z-index: 40; display: flex; justify-content: center;
+    padding-block: min(calc(9 * var(--of-vh)), calc(5.625 * var(--of-vw)));
+    transition: padding 0.5s;
+  }
+  .lnav[data-compact] { padding-top: clamp(20px, 2.4vw, 25px); padding-bottom: clamp(12px, 1.6vw, 18px); }
+  .lnav__pill {
+    pointer-events: auto; position: relative; display: flex; align-items: center; justify-content: center;
+    gap: calc(4.5 * var(--vu)); padding-inline: 1rem; border: 1px solid transparent; border-radius: 9999px; background: transparent;
+    transition: all 0.5s;
+  }
+  .lnav[data-compact] .lnav__pill {
+    gap: clamp(12px, 2.4vw, 40px); padding: 11px clamp(14px, 2.4vw, 34px) 13px;
+    background: rgba(20, 16, 22, 0.72); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-color: rgba(244, 239, 230, 0.12); box-shadow: 0 10px 34px rgba(0, 0, 0, 0.4);
+  }
+  .lnav__btn {
+    position: relative; line-height: 1; font-size: clamp(19px, calc(2.8 * var(--vu)), 40px); color: rgba(244, 239, 230, 0.45);
+    transition: color 0.5s, font-size 0.5s;
+  }
+  .lnav__btn:hover { color: rgba(244, 239, 230, 0.85); }
+  .lnav__btn[data-active='true'] { color: #f4efe6; }
+  .lnav[data-compact] .lnav__btn { font-size: clamp(13px, 1.9vw, 27px); }
+  .lnav__hit { position: absolute; inset: -14px -8px; }
+  .lnav__line {
+    pointer-events: none; position: absolute; left: 0; top: 0; height: 2.5px; width: 0; border-radius: 9999px; background: #f4efe6; opacity: 0;
+    transform-origin: left center; will-change: transform, width;
+    transition: transform 0.5s cubic-bezier(0.34, 1.4, 0.5, 1), width 0.5s cubic-bezier(0.34, 1.4, 0.5, 1), opacity 0.3s ease;
+  }
+  @media (max-width: 767px) {
+    .lnav-end { display: block; order: 99; }
+    .lnav { order: 100; top: auto; bottom: 24px; height: 0; justify-content: flex-start; padding-block: 0; transition: none; }
+    .lnav__pill {
+      position: absolute; bottom: 0; left: 24px; gap: clamp(10px, 3.6vw, 14px); padding: 13px 1rem;
+      border-color: rgba(255, 255, 255, 0.15); background: rgba(0, 0, 0, 0.45); transition: opacity 0.3s;
+    }
+    .lnav[data-hide] .lnav__pill { pointer-events: none; opacity: 0; }
+    .lnav__btn { font-size: clamp(18px, 5.13vw, 20px); }
+    .lnav__hit { inset: -12px -8px; }
+  }
+</style>

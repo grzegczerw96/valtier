@@ -1,0 +1,183 @@
+---
+/** Features lane. Desktop (>= 1024): the section is 60vh per slide; title and stage
+ *  stay pinned while the scroll steps through the slides (cross-fade, the stage
+ *  and copy rise from ±22px out of a blur); a progress line runs down the left
+ *  index. Below 1024: a snap carousel with arrows and dots.
+ *  Slides with a clip loop it muted (over the still) and can be played in place
+ *  (phones: full screen). */
+import LaneTitle from '@valtier/ds/components/LaneTitle.astro';
+import Wordmark from '@valtier/ds/components/Wordmark.astro';
+import { features, laneSqueeze } from '../../content/off-field';
+const { slides, title } = features;
+const chevL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg>';
+const chevR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>';
+const play = '<svg viewBox="0 0 18 20" fill="currentColor" aria-hidden="true"><path d="M0 0L18 10L0 20V0Z"/></svg>';
+---
+<section id="features" class="feat" data-section="features" data-tone="dark" aria-label={title} style={`--features-h:${60 * slides.length}vh`} data-features data-count={slides.length}>
+  <div class="feat__title-wrap">
+    <div class="feat__pin feat__pin--title">
+      <div class="feat__title"><LaneTitle text={title} squeeze={laneSqueeze.features} gradient="linear-gradient(180deg, #9E6DE9 22%, rgba(80, 46, 132, 0) 80%)" /></div>
+    </div>
+  </div>
+  <div class="feat__pin feat__pin--stage">
+    <div class="feat__grid">
+      <nav class="feat__nav" aria-label="Featured stories">
+        <div class="feat__index">
+          <span class="feat__rail" aria-hidden="true"></span>
+          <span class="feat__progress" aria-hidden="true" data-feat-progress></span>
+          <ul class="feat__list">
+            {slides.map((s, i) => (
+              <li data-feat-li><button type="button" class="label-sm feat__link" data-feat-go={i} aria-current={i === 0 ? 'true' : undefined}>{s.nav}<span class="feat__hit" aria-hidden="true"></span></button></li>
+            ))}
+          </ul>
+          <div class="feat__ctrl">
+            <button type="button" class="feat__arrow feat__arrow--prev" aria-label="Previous story" data-feat-prev set:html={chevL} />
+            <div class="feat__dots">
+              {slides.map((s, i) => (
+                <button type="button" class="feat__dot" aria-label={s.nav} aria-current={i === 0 ? 'true' : undefined} data-feat-go={i}><span></span></button>
+              ))}
+            </div>
+            <button type="button" class="feat__arrow feat__arrow--next" aria-label="Next story" data-feat-next set:html={chevR} />
+          </div>
+        </div>
+      </nav>
+
+      <div class="feat__stage" data-feat-stage>
+        {slides.map((s, i) => (
+          <div class="feat__slide" data-feat-slide data-index={i} data-active={i === 0 ? 'true' : 'false'} aria-hidden={i === 0 ? undefined : 'true'}>
+            <img class="feat__still" src={s.still} alt={s.alt} loading={i < 2 ? 'eager' : 'lazy'} decoding="async" draggable="false" />
+            {s.loop && (
+              <>
+                <video class="feat__loop" muted loop playsinline disableremoteplayback preload="none" data-src={s.loop} aria-hidden="true"></video>
+                <button type="button" class="feat__play" aria-label={`Play the ${s.nav} video`} data-feat-play data-src={s.loop} data-poster={s.still} data-title={`${s.nav} film`}>
+                  <span class="feat__play-btn" set:html={play} />
+                </button>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div class="feat__copy" data-feat-copy aria-live="polite">
+        {slides.map((s, i) => (
+          <div class="feat__text" data-feat-text hidden={i !== 0}>
+            <div class="feat__head">
+              <span class="feat__logo"><Wordmark name={s.logo.text} style={s.logo.style} scale={s.logo.scale} italic={s.logo.italic} color={s.logo.color} /></span>
+              <p class="label feat__name">{s.nav}</p>
+            </div>
+            <p class="feat__caption">{s.caption}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  window.vDefer(async () => {
+    const { whenNear } = await import('@valtier/ds/motion/inview');
+    const root = document.querySelector<HTMLElement>('[data-features]');
+    if (root) whenNear(root, () => window.vDefer(async () => {
+      const { initFeatures } = await import('./features');
+      initFeatures(root);
+    }), '150% 0px');
+  });
+</script>
+
+<style>
+  .feat { position: relative; overflow-x: clip; }
+  .feat__title-wrap { padding-top: calc(5 * var(--of-pvh)); }
+  .feat__pin--stage { position: relative; padding-bottom: calc(8 * var(--of-pvh)); }
+  .feat__grid {
+    position: relative; z-index: 10; margin: 1rem auto 0; display: grid; width: 100%; max-width: 1728px;
+    grid-template-columns: minmax(0, 1fr); align-items: center; gap: 1.75rem; padding-inline: 1.5rem;
+  }
+  .feat__nav { order: 3; }
+  .feat__index { position: relative; }
+  .feat__rail, .feat__progress { display: none; position: absolute; left: 0; width: 1px; }
+  .feat__rail { top: 0; bottom: 0; background: rgba(244, 239, 230, 0.18); }
+  .feat__progress { top: 0; height: 0; background: #f4efe6; }
+  .feat__list { display: none; margin: 0; padding: 0 0 0 1.25rem; list-style: none; flex-direction: column; gap: 0.75rem; }
+  .feat__link {
+    --feat-nav-fs: clamp(11px, 0.78vw, 13px);
+    position: relative; display: flex; align-items: center; gap: 0.75rem; white-space: nowrap; font-size: var(--feat-nav-fs, 12px);
+    color: rgba(244, 239, 230, 0.55); transition: color 0.3s, transform 0.3s;
+  }
+  .feat__link:hover { transform: translateX(3px); color: rgba(244, 239, 230, 0.9); }
+  .feat__link[aria-current='true'] { color: #f4efe6; transform: none; }
+  .feat__hit { position: absolute; inset: -6px -8px; }
+  .feat__ctrl { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+  .feat__arrow { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 44px; height: 44px; color: #f4efe6; }
+  .feat__arrow--prev { margin-left: -0.75rem; }
+  .feat__arrow--next { margin-right: -0.75rem; }
+  .feat__arrow :global(svg) { width: 20px; height: 20px; }
+  .feat__dots { display: flex; min-width: 0; flex: 1; align-items: center; justify-content: center; }
+  .feat__dot { display: flex; height: 44px; align-items: center; padding-inline: 4px; }
+  .feat__dot span { display: block; height: 6px; width: 6px; border-radius: 9999px; background: #f4efe6; opacity: 0.3; transition: width 0.3s, opacity 0.3s; }
+  .feat__dot[aria-current='true'] span { width: 18px; opacity: 0.9; }
+
+  .feat__stage {
+    position: relative; order: 1; display: flex; gap: 0.75rem; margin-inline: -1.5rem; padding-inline: 1.5rem; scroll-padding-inline: 24px;
+    overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; touch-action: pan-x pan-y; overscroll-behavior-x: contain; scrollbar-width: none;
+  }
+  .feat__stage::-webkit-scrollbar { display: none; }
+  .feat__slide {
+    position: relative; flex-shrink: 0; width: 82vw; aspect-ratio: 729 / 409; overflow: hidden; border-radius: 14px; scroll-snap-align: center;
+    background: var(--color-ink-deep); opacity: 0.6; transition: opacity 550ms var(--ease-reveal);
+  }
+  .feat__slide[data-active='true'] { opacity: 1; }
+  .feat__still, .feat__loop { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+  .feat__loop { opacity: 0; transition: opacity 0.4s; }
+  .feat__loop.is-ready { opacity: 1; }
+  .feat__play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .feat__slide:not([data-active='true']) .feat__play { pointer-events: none; }
+  .feat__play-btn {
+    display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 9999px;
+    background: rgba(23, 18, 32, 0.6); color: var(--color-bone); box-shadow: 0 0 0 1px var(--color-bone); transition: transform 0.3s;
+  }
+  .feat__play:hover .feat__play-btn { transform: scale(1.1); }
+  .feat__play-btn :global(svg) { width: 18px; height: 20px; margin-left: 4px; }
+  .feat__slide.is-playing .feat__play { display: none; }
+  .feat__inline { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; object-fit: contain; background: var(--color-ink-deep); border-radius: 14px; }
+
+  .feat__copy { order: 2; }
+  .feat__text { display: flex; flex-direction: column; align-items: flex-start; gap: 1.25rem; }
+  .feat__text[hidden] { display: none; }
+  .feat__head { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 1rem; }
+  .feat__logo { --wm-h: 26px; display: flex; }
+  .feat__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; color: #f4efe6; }
+  .feat__caption { font-size: 15px; line-height: 1.7; color: rgba(244, 239, 230, 0.8); }
+
+  @media (min-width: 768px) {
+    .feat__title-wrap { padding-top: calc(6 * var(--of-vh)); }
+    .feat__pin--stage { padding-bottom: min(calc(16 * var(--of-vh)), calc(10 * var(--of-vw))); }
+    .feat__grid { margin-top: calc(-4.5 * var(--of-vw)); padding-inline: min(4vw, 69.12px); }
+    .feat__stage { margin-inline: auto; padding-inline: 0; width: 100%; max-width: min(100%, calc(58 * var(--of-svh) * 729 / 409)); }
+    .feat__slide { width: min(82vw, calc(100% - 64px)); }
+  }
+  @media (min-width: 1024px) {
+    .feat { height: var(--features-h); }
+    .feat__title-wrap { pointer-events: none; position: absolute; inset: 0; z-index: -1; padding-top: 0; }
+    .feat__pin { --of-vh: 1vh; --of-svh: 1svh; --vu: var(--vu-fit); position: sticky; top: 0; height: 100svh; }
+    .feat__pin--title { padding-top: max(0px, calc(50 * var(--of-svh) - 31.25 * var(--of-vw))); }
+    .feat__title { margin-top: calc(-4 * var(--of-vw)); }
+    .feat__pin--stage {
+      display: flex; flex-direction: column; justify-content: flex-end;
+      padding-bottom: calc(min(calc(7 * var(--of-vh)), calc(4.375 * var(--of-vw))) + max(0px, calc(50 * var(--of-svh) - 31.25 * var(--of-vw))));
+    }
+    .feat__grid { margin-top: 0; grid-template-columns: 170px minmax(0, 1fr) 240px; gap: min(3vw, 51.84px); }
+    .feat__nav { order: 1; }
+    .feat__rail, .feat__progress { display: block; }
+    .feat__list { display: flex; }
+    .feat__ctrl { display: none; }
+    .feat__stage {
+      order: 2; display: block; overflow: hidden; aspect-ratio: 729 / 409; border-radius: 14px; scroll-snap-type: none; touch-action: auto; will-change: transform;
+    }
+    .feat__slide { position: absolute; inset: 0; width: auto; opacity: 0; transition: none; will-change: transform, opacity; pointer-events: none; }
+    .feat__slide[data-active='true'] { opacity: 1; pointer-events: auto; }
+    .feat__copy { order: 3; }
+    .feat__text { gap: 1.75rem; }
+    .feat__logo { --wm-h: clamp(38px, calc(4.4 * var(--vu)), 76px); }
+    .feat__name { display: none; }
+  }
+</style>

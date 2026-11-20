@@ -1,0 +1,91 @@
+---
+/** Endless media rail (see motion/image-rail.ts).
+ *  Desktop: a drift track (two identical halves) that follows the scroll, can be
+ *  dragged/flung; video tiles loop muted and play in place when clicked (the rail
+ *  glides the tile to the centre and holds still while it plays).
+ *  Phones: a looping scroll-snap rail; video tiles open the full-screen player. */
+export interface RailPhoto { kind: 'photo'; src: string; width: number; height: number; alt: string; caption?: string }
+export interface RailVideo { kind: 'video'; src: string; poster: string; width: number; height: number; alt: string; caption?: string }
+interface Props { items: (RailPhoto | RailVideo)[]; label: string; speed?: number; class?: string }
+const { items, label, speed = 0.35, class: cls } = Astro.props;
+const play = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3 21 12 5 21z"/></svg>';
+---
+<div class:list={['irail', cls]} role="region" aria-label={label} data-image-rail data-speed={speed}>
+  <div class="irail__desk">
+    <div class="irail__track" data-irail-track>
+      {[0, 1].map((half) => (
+        <div class="irail__set" aria-hidden={half === 1 ? 'true' : undefined}>
+          {items.map((it, i) => it.kind === 'video' ? (
+            <div class="irail__tile irail__tile--video" style={`aspect-ratio:${it.width} / ${it.height}`} data-irail-video data-index={i} data-src={it.src} data-poster={it.poster} data-title={it.alt}>
+              <video muted loop playsinline disableremoteplayback preload="none" poster={it.poster} data-src={it.src} aria-label={half ? undefined : it.alt}></video>
+              <span class="irail__play" aria-hidden="true"><span class="irail__play-btn" set:html={play} /></span>
+              <button type="button" class="irail__hit" tabindex={half ? -1 : undefined} aria-label={`Play: ${it.alt}`}></button>
+            </div>
+          ) : (
+            <div class="irail__tile" style={`aspect-ratio:${it.width} / ${it.height}`}>
+              <img src={it.src} alt={half ? '' : it.alt} width={it.width} height={it.height} loading="lazy" decoding="async" draggable="false" />
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  </div>
+  <ul class="irail__phone" data-irail-phone aria-label={label}>
+    {[0, 1, 2].map((copy) => items.map((it, i) => (
+      <li class="irail__cell" style={`aspect-ratio:${it.width} / ${it.height}`}>
+        {it.kind === 'video' ? (
+          <button type="button" class="irail__tile irail__tile--video" data-irail-film data-src={it.src} data-poster={it.poster} data-title={it.alt} aria-label={`Play: ${it.alt}`}>
+            <img src={it.poster} alt="" width={it.width} height={it.height} loading="lazy" decoding="async" draggable="false" />
+            <span class="irail__play" aria-hidden="true"><span class="irail__play-btn" set:html={play} /></span>
+          </button>
+        ) : (
+          <div class="irail__tile">
+            <img src={it.src} alt={copy === 1 ? it.alt : ''} width={it.width} height={it.height} loading="lazy" decoding="async" draggable="false" />
+          </div>
+        )}
+      </li>
+    )))}
+  </ul>
+</div>
+
+<script>
+  window.vDefer(async () => {
+    const { whenNear } = await import('../motion/inview');
+    document.querySelectorAll<HTMLElement>('[data-image-rail]').forEach((rail) =>
+      whenNear(rail, () => window.vDefer(async () => {
+        const { initImageRail } = await import('../motion/image-rail');
+        initImageRail(rail);
+      })),
+    );
+  });
+</script>
+
+<style is:global>
+  .irail { position: relative; width: 100%; }
+  .irail__desk { overflow-x: clip; }
+  .irail__track { display: flex; width: max-content; touch-action: pan-y; user-select: none; }
+  .irail__set { display: flex; flex-shrink: 0; gap: 24px; padding-right: 24px; }
+  .irail__tile { position: relative; display: block; flex-shrink: 0; overflow: hidden; height: clamp(260px, calc(40 * var(--vu)), 691px); background: var(--color-ink-deep); }
+  .irail__tile img, .irail__tile video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+  .irail__tile--video video, .irail__tile--video img { object-fit: contain; }
+  .irail__play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; transition: opacity 0.3s; }
+  .irail__tile.is-playing .irail__play { opacity: 0; }
+  .irail__play-btn {
+    display: flex; align-items: center; justify-content: center; border-radius: 9999px;
+    width: clamp(52px, calc(4.6 * var(--vu)), 80px); height: clamp(52px, calc(4.6 * var(--vu)), 80px);
+    background: rgba(11, 10, 15, 0.55); border: 1px solid rgba(244, 239, 230, 0.35); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  }
+  .irail__play-btn svg { width: 34%; margin-left: 8%; fill: var(--color-bone); }
+  .irail__hit { position: absolute; inset: 0; z-index: 1; cursor: pointer; background: transparent; }
+  .irail__phone { display: none; }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
+    .irail__desk { display: none; }
+    .irail__phone {
+      display: flex; gap: 10px; padding-inline: 24px; scroll-padding-inline: 24px; overflow-x: auto; overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory; scrollbar-width: none; list-style: none; margin: 0;
+    }
+    .irail__phone::-webkit-scrollbar { display: none; }
+    .irail__cell { position: relative; flex-shrink: 0; height: calc(48 * var(--of-psvh)); scroll-snap-align: start; }
+    .irail__cell .irail__tile { width: 100%; height: 100%; }
+  }
+</style>

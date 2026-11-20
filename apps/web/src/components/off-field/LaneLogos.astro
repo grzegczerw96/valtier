@@ -1,0 +1,30 @@
+---
+/** Row of wordmarks under a lane rail. Phones fit the whole row on one line. */
+import Wordmark from '@valtier/ds/components/Wordmark.astro';
+import type { Wordmark as W } from '../../content/off-field';
+interface Props { marks: W[]; label: string; rowScale?: number }
+/** rowScale: row height in logo heights (the reference rows hold one taller emblem). */
+const { marks, label, rowScale = 1 } = Astro.props;
+// Phone height: the row (24px gaps, 24px gutters) must fit 100vw. Average glyph
+// advance per style, in logo heights (font multiplier x face width).
+const ADV: Record<string, number> = { display: 0.51, body: 0.57, serif: 0.46, hero: 0.72, mono: 0.54 };
+const em = marks.reduce((a, m) => a + m.name.length * (ADV[m.style] ?? 0.55) * (m.scale ?? 1), 0);
+const fit = `min(32px, calc((100vw - ${48 + 24 * (marks.length - 1)}px) / ${em.toFixed(3)}))`;
+---
+<div class="llogos" role="list" aria-label={label} style={`--lane-logo-fit:${fit};--row:${rowScale}`}>
+  {marks.map((m) => <span role="listitem"><Wordmark name={m.name} style={m.style} scale={m.scale} tracking={m.tracking} weight={m.weight} italic={m.italic} /></span>)}
+</div>
+
+<style>
+  .llogos {
+    margin-top: 2.5rem; display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between; column-gap: 24px;
+    padding-inline: 1.5rem; color: #746c62; --wm-h: var(--lane-logo-fit);
+  }
+  .llogos > span { display: flex; flex-shrink: 0; align-items: center; min-height: calc(var(--wm-h) * var(--row, 1)); }
+  @media (min-width: 768px) {
+    .llogos {
+      margin-top: min(calc(9 * var(--of-vh)), calc(5.625 * var(--of-vw))); flex-wrap: wrap; justify-content: center;
+      column-gap: calc(8 * var(--of-vw)); row-gap: 2rem; padding-inline: calc(var(--page-x) + 32px); --wm-h: clamp(18px, 2.2vw, 38px);
+    }
+  }
+</style>

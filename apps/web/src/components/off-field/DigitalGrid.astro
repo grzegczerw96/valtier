@@ -1,0 +1,163 @@
+---
+/** Digital lane wall: five staggered columns of stat cards and phones (desktop),
+ *  three on tablets; columns drift against the scroll (scrubbed yPercent) and sway
+ *  with the pointer. Phones: a two-row looping rail (phones span both rows). */
+import PhoneMock from '@valtier/ds/components/PhoneMock.astro';
+import { digital, type GridCard } from '../../content/off-field';
+const cols = digital.columns;
+// Phone rail: drop the phones of the outer columns, then one stat (the Twitch one)
+// so the stats pair up into the two rows.
+const flat = cols.flatMap((c, i) => c.filter((x) => !((i === 0 || i === 4) && x.type === 'phone')));
+const statIdx = flat.map((x, i) => (x.type === 'stat' ? i : -1)).filter((i) => i >= 0);
+let drop = -1;
+if (statIdx.length % 2 === 1) {
+  const rev = [...statIdx].reverse();
+  drop = rev.find((i) => /twitch/i.test(`${(flat[i] as any).label} ${(flat[i] as any).caption}`)) ?? rev.find((i) => /follower|subscriber/i.test((flat[i] as any).label)) ?? statIdx[statIdx.length - 1];
+}
+const railItems = flat.filter((_, i) => i !== drop);
+// Pack into rail columns like a 2-row dense grid: a phone fills a column, stats pair up.
+const railCols: GridCard[][] = [];
+let open: GridCard[] | null = null;
+for (const c of railItems) {
+  if (c.type === 'phone') railCols.push([c]);
+  else if (open && open.length === 1) { open.push(c); open = null; }
+  else { open = [c]; railCols.push(open); }
+}
+const isStat = (c: GridCard): c is Extract<GridCard, { type: 'stat' }> => c.type === 'stat';
+---
+<div class="dgrid" data-dgrid>
+  <ul class="dgrid__rail" data-dgrid-rail aria-label="Digital stats">
+    {[0, 1, 2].map((copy) => railCols.map((col) => (
+      <li class="dgrid__rail-col" aria-hidden={copy === 1 ? undefined : 'true'}>
+        {col.map((c) => isStat(c) ? (
+          <div class="dgrid__rail-stat" data-grid-card>
+            <div class="dstat"><span class="numeric dstat__v">{c.value}</span><span class="dstat__l">{c.label}</span><span class="label-sm dstat__c">{c.caption}</span></div>
+          </div>
+        ) : (
+          <div class="dgrid__rail-phone" data-grid-card>
+            <PhoneMock poster={c.poster} video={c.video} alt={copy === 1 ? c.alt : ''} />
+          </div>
+        ))}
+      </li>
+    )))}
+  </ul>
+
+  <div class="dgrid__wall" data-dgrid-wall>
+    {cols.map((col, ci) => (
+      <div class:list={['dgrid__col', `dgrid__col--${ci}`]} data-dgrid-col>
+        {col.map((c) => (
+          <div data-grid-card>
+            {isStat(c)
+              ? <div class="dstat"><span class="numeric dstat__v">{c.value}</span><span class="dstat__l">{c.label}</span><span class="label-sm dstat__c">{c.caption}</span></div>
+              : <PhoneMock class="dgrid__phone" poster={c.poster} video={c.video} alt={c.alt} />}
+          </div>
+        ))}
+      </div>
+    ))}
+  </div>
+</div>
+
+<script>
+  window.vDefer(async () => {
+    const { whenNear } = await import('@valtier/ds/motion/inview');
+    const root = document.querySelector<HTMLElement>('[data-dgrid]');
+    if (root) whenNear(root, () => window.vDefer(async () => {
+      const { gsap } = await import('@valtier/ds/motion/gsap');
+      const { isPhone, prefersReducedMotion } = await import('@valtier/ds/motion/env');
+      const reduced = prefersReducedMotion();
+      const phone = isPhone();
+      const scope = phone ? root.querySelector<HTMLElement>('[data-dgrid-rail]')! : root.querySelector<HTMLElement>('[data-dgrid-wall]')!;
+
+      // Clips: attach + play while on screen, pause off screen.
+      if (!reduced) {
+        const vids = Array.from(scope.querySelectorAll<HTMLVideoElement>('video[data-phone-video]')).filter((v) => v.offsetParent !== null);
+        const io = new IntersectionObserver((es) => es.forEach((e) => {
+          const v = e.target as HTMLVideoElement;
+          if (e.isIntersecting) { if (!v.getAttribute('src')) v.src = v.dataset.src!; v.play().catch(() => {}); }
+          else if (!v.paused) v.pause();
+        }), { rootMargin: '10% 0px' });
+        vids.forEach((v) => io.observe(v));
+      }
+
+      if (phone) {
+        const { initSnapRail } = await import('@valtier/ds/motion/snap-rail');
+        initSnapRail(scope, { loop: true });
+        if (reduced) return;
+        const cards = Array.from(scope.querySelectorAll<HTMLElement>('[data-grid-card]'));
+        gsap.set(cards, { opacity: 0, y: 18 });
+        const io = new IntersectionObserver((es) => {
+          const hit = es.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.left - b.boundingClientRect.left).map((e) => e.target as HTMLElement);
+          if (!hit.length) return;
+          hit.forEach((h) => io.unobserve(h));
+          gsap.to(hit, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out', stagger: 0.07, clearProps: 'opacity,transform', overwrite: 'auto' });
+        }, { rootMargin: '0px 0px -6% 0px' });
+        cards.forEach((c) => io.observe(c));
+        return;
+      }
+      if (reduced || !matchMedia('(min-width: 1024px)').matches) return;
+      const F = [-7, 9, -13, 7, -10];
+      const V = [46, -38, 52, -40, 44];
+      const colsEl = Array.from(scope.querySelectorAll<HTMLElement>('[data-dgrid-col]'));
+      const section = root.closest('section') ?? root;
+      colsEl.forEach((c, i) => {
+        const f = F[i % F.length];
+        gsap.fromTo(c, { yPercent: f }, { yPercent: -f, ease: 'none', scrollTrigger: { trigger: section, start: 'top bottom', end: 'bottom top', scrub: 0.4 } });
+      });
+      const qs = colsEl.map((c) => gsap.quickTo(c, 'y', { duration: 0.7, ease: 'power3.out' }));
+      addEventListener('mousemove', (e) => {
+        const k = (e.clientX / innerWidth) * 2 - 1;
+        qs.forEach((q, i) => q(k * (V[i % V.length] ?? 0)));
+      });
+    }));
+  });
+</script>
+
+<style>
+  .dgrid { position: relative; z-index: 10; width: 100%; overflow-x: clip; }
+  .dstat {
+    display: flex; height: 100%; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    padding: 1.5rem 1.25rem; border-radius: 22px; border: 1px solid rgba(244, 239, 230, 0.05);
+    background: color-mix(in srgb, var(--color-ink) 84%, #8a8694 16%);
+  }
+  .dstat__v { white-space: nowrap; line-height: 0.9; color: #f4efe6; font-size: clamp(30px, 10vw, 48px); }
+  .dstat__l { margin-top: 0.5rem; font-size: 15px; font-weight: 500; color: rgba(244, 239, 230, 0.92); }
+  .dstat__c { margin-top: 1.25rem; color: rgba(244, 239, 230, 0.55); letter-spacing: 0.14em; }
+
+  /* Phones: two-row rail. */
+  .dgrid__rail {
+    --x: clamp(170px, 24svh, 240px);
+    display: flex; gap: 12px; margin: 0; padding-inline: 24px; scroll-padding-inline: 24px; list-style: none;
+    overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain;
+  }
+  .dgrid__rail::-webkit-scrollbar { display: none; }
+  .dgrid__rail-col { display: flex; flex-shrink: 0; flex-direction: column; gap: 12px; scroll-snap-align: start; }
+  .dgrid__rail-stat { height: var(--x); max-width: 58vw; }
+  .dgrid__rail-stat .dstat { min-width: 150px; }
+  .dgrid__rail-phone { height: calc(2 * var(--x) + 12px); width: calc((2 * var(--x) + 12px) * 346 / 733); }
+  .dgrid__rail-phone :global(.phone) { width: 100%; height: 100%; }
+  .dgrid__wall { display: none; }
+
+  @media (min-width: 768px) {
+    .dstat { padding: 3rem 1.75rem; }
+    .dstat__v { font-size: clamp(48px, calc(5.4 * var(--of-vw)), 92px); }
+    .dstat__l { font-size: 17px; }
+    .dgrid__rail { display: none; }
+    .dgrid__wall { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; padding-inline: 2rem; }
+    .dgrid__col { display: flex; flex-direction: column; gap: 1.5rem; will-change: transform; }
+    .dgrid__col--0, .dgrid__col--4 { display: none; }
+    .dgrid__wall :global(.dgrid__phone) { margin-inline: auto; width: min(100%, calc(70 * var(--of-vh) * 346 / 733)); }
+  }
+  @media (min-width: 1024px) {
+    .dstat { padding: min(48px, calc(3.34 * var(--of-vw))) min(28px, calc(1.95 * var(--of-vw))); }
+    .dgrid__wall {
+      grid-template-columns: repeat(5, minmax(0, 1fr)); padding-inline: 0;
+      margin-left: calc(var(--page-x) - 7 * var(--of-vw)); width: calc(114 * var(--of-vw)); max-width: none;
+    }
+    .dgrid__col--0, .dgrid__col--4 { display: flex; }
+    .dgrid__wall :global(.dgrid__phone) { margin-inline: 0; width: auto; }
+    .dgrid__col--0 { margin-top: min(calc(24 * var(--of-vh)), calc(15 * var(--of-vw))); }
+    .dgrid__col--1 { margin-top: min(calc(4 * var(--of-vh)), calc(2.5 * var(--of-vw))); }
+    .dgrid__col--3 { margin-top: min(calc(10 * var(--of-vh)), calc(6.25 * var(--of-vw))); }
+    .dgrid__col--4 { margin-top: min(calc(18 * var(--of-vh)), calc(11.25 * var(--of-vw))); }
+  }
+</style>

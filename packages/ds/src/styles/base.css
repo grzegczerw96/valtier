@@ -193,3 +193,21 @@ html:not([data-footer-prepared]) .bg-layers__texture--footer { background-image:
     animation-iteration-count: 1 !important;
   }
 }
+
+/* ---- Full-screen film player (motion/film.ts) ---------------------------- */
+.v-film {
+  position: fixed; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center;
+  width: 100%; max-width: 100vw; height: 100dvh; overflow: hidden; background: var(--color-ink-deep); color: var(--color-bone);
+}
+.v-film__video { width: 100%; max-width: 100vw; height: 100%; max-height: 100dvh; object-fit: contain; }
+.v-film__close {
+  position: absolute; right: 1rem; top: max(1rem, env(safe-area-inset-top)); z-index: 2; display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 9999px; background: var(--color-ink-deep); color: var(--color-bone);
+}
+.v-film__close svg { width: 24px; height: 24px; }
+
+/* Until the parser reaches the veil (it sits at the end of <body>), a covered page
+   must not paint its content: the root pseudo-element stands in for it. */
+html.js.veil-on:not([data-veil-lifted]):not(:has(> body > .veil))::after {
+  content: ""; position: fixed; inset: 0; z-index: var(--z-veil); background: var(--color-ink-deep);
+}

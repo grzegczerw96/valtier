@@ -1,0 +1,133 @@
+---
+/** Off-Field hero: "OFF / FIELD" in the hero face (dot reveal), a print that can be
+ *  thrown around (desktop), a rule and the intro with the gold signature.
+ *  Intro after the veil: print rises and tilts (-2.5° -> 2.5°), the rule draws,
+ *  the copy and signature follow. */
+import DotReveal from '@valtier/ds/components/DotReveal.astro';
+import Signature from '@valtier/ds/components/Signature.astro';
+import { hero } from '../../content/off-field';
+const DELAYS = [0.15, 0.32];
+---
+<section class="ofh" data-tone="dark" data-section="off-hero" aria-label="Off-field" data-off-hero>
+  <div class="ofh__inner">
+    <div class="ofh__top">
+      <h1 class="ofh__title" aria-label={hero.title.join(' ')}>
+        {hero.title.map((line, i) => <DotReveal class="ofh__line" waitForVeil delay={DELAYS[i] ?? DELAYS[0]}>{line}</DotReveal>)}
+      </h1>
+      <div class="ofh__card" data-off-card>
+        <div class="ofh__photo">
+          <img src={hero.print.src} alt={hero.print.alt} width={hero.print.width} height={hero.print.height} fetchpriority="high" decoding="async" draggable="false" />
+        </div>
+      </div>
+    </div>
+    <div class="ofh__rule" data-off-rule></div>
+    <div class="ofh__row">
+      <p class="ofh__intro" data-off-meta>{hero.intro}</p>
+      <div class="ofh__sig" data-off-meta aria-hidden="true">
+        <Signature class="ofh__sig-svg" color="#EEAC1A" label="Nico Valtier signature" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  window.vDefer(async () => {
+    const { gsap } = await import('@valtier/ds/motion/gsap');
+    const { prefersReducedMotion, hasFinePointer } = await import('@valtier/ds/motion/env');
+    const { afterVeil, arrivedByTransition } = await import('@valtier/ds/motion/veil');
+    const { initAllDotReveals, revealNow } = await import('@valtier/ds/motion/dot-reveal');
+    const root = document.querySelector<HTMLElement>('[data-off-hero]');
+    if (!root) return;
+    // Like the reference: a hard load (behind the loader) opens on the finished hero;
+    // the intro plays when the page is reached through a page transition.
+    const instant = !arrivedByTransition();
+    if (instant) root.querySelectorAll<HTMLElement>('[data-dot-reveal]').forEach(revealNow);
+    initAllDotReveals(root);
+    const card = root.querySelector<HTMLElement>('[data-off-card]')!;
+    const rule = root.querySelector<HTMLElement>('[data-off-rule]')!;
+    const metas = root.querySelectorAll<HTMLElement>('[data-off-meta]');
+    const sig = root.querySelector<HTMLElement>('[data-signature]');
+
+    // The signature writes itself while 40% of it is on screen and un-writes when it leaves.
+    if (sig) new IntersectionObserver(([e]) => { sig.dataset.active = String(!!e?.isIntersecting); }, { threshold: 0.4 }).observe(sig);
+
+    if (prefersReducedMotion()) {
+      gsap.set([card, ...metas], { autoAlpha: 1, y: 0 });
+      gsap.set(card, { rotate: 2.5 });
+      gsap.set(rule, { scaleX: 1 });
+    } else {
+      const tl = gsap.timeline({ paused: true, delay: 0.15, defaults: { ease: 'power3.out' } });
+      tl.fromTo(card, { autoAlpha: 0, y: 48, rotate: -2.5 }, { autoAlpha: 1, y: 0, rotate: 2.5, duration: 1.2 }, 0.25)
+        .fromTo(rule, { scaleX: 0 }, { scaleX: 1, duration: 1.1, ease: 'power2.inOut' }, 0.45)
+        .fromTo(metas, { autoAlpha: 0, y: 26 }, { autoAlpha: 1, y: 0, duration: 0.9, stagger: 0.1 }, 0.6);
+      if (instant) tl.progress(1);
+      else afterVeil(() => tl.play());
+    }
+
+    // Desktop: the print can be picked up and thrown; off-screen it slides back home.
+    if (hasFinePointer()) {
+      const [{ Draggable }, { InertiaPlugin }, { sound }] = await Promise.all([
+        import('gsap/Draggable'), import('gsap/InertiaPlugin'), import('@valtier/ds/motion/sound'),
+      ]);
+      gsap.registerPlugin(Draggable, InertiaPlugin);
+      Draggable.create(card, {
+        type: 'x,y', inertia: true, throwResistance: 3500, maxDuration: 0.7, cursor: 'grab', activeCursor: 'grabbing', zIndexBoost: false,
+        onThrowComplete() {
+          const r = card.getBoundingClientRect();
+          if (r.right <= 0 || r.left >= innerWidth || r.bottom <= 0 || r.top >= innerHeight) {
+            sound.whoosh(0.7);
+            gsap.to(card, { x: 0, y: 0, duration: 0.85, ease: 'power3.out', overwrite: 'auto' });
+          }
+        },
+      });
+    }
+  });
+</script>
+
+<style>
+  .ofh {
+    position: relative; padding: calc(13 * var(--of-pvh)) 4.4vw calc(2 * var(--of-pvh));
+  }
+  .ofh__inner { margin-inline: auto; width: 100%; max-width: min(1728px, calc(91.2 * var(--vu))); }
+  .ofh__top { position: relative; display: flex; flex-direction: column-reverse; }
+  .ofh__title {
+    position: relative; z-index: 0; margin-top: -0.08em; user-select: none; text-transform: uppercase;
+    font-family: var(--font-hero); font-weight: 400; font-size: clamp(64px, calc(17.2 * var(--vu)), 297px);
+    line-height: 0.78; letter-spacing: -0.01em; color: #f4efe6;
+  }
+  .ofh__title :global(.ofh__line) { display: block; }
+  .ofh__card {
+    --mat: 6px;
+    position: relative; z-index: 40; margin-inline: auto; width: min(calc(86 * var(--pu)), 420px);
+    padding: var(--mat); background: #f6f1e7; box-shadow: 0 32px 90px rgba(0, 0, 0, 0.5); transform: rotate(2.5deg);
+  }
+  html.js .ofh__card, html.js .ofh__intro, html.js .ofh__sig { opacity: 0; visibility: hidden; }
+  html.js .ofh__rule { transform: scaleX(0); }
+  .ofh__photo { position: relative; width: 100%; aspect-ratio: 514 / 668; overflow: hidden; background: var(--color-card-photo); }
+  .ofh__photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; user-select: none; }
+  .ofh__rule { margin-top: calc(5 * var(--of-pvh)); height: 1px; width: 100%; transform-origin: left; background: rgba(244, 239, 230, 0.26); }
+  .ofh__row { margin-top: calc(4 * var(--of-pvh)); display: flex; align-items: flex-end; gap: 0.5rem; }
+  .ofh__intro { max-width: 400px; width: 75%; font-size: 15px; line-height: 1.7; color: rgba(244, 239, 230, 0.82); }
+  .ofh__sig { margin-left: auto; }
+  .ofh__sig :global(.ofh__sig-svg) { display: block; width: 80px; height: 66px; }
+
+  @media (min-width: 768px) {
+    .ofh { padding: min(calc(16 * var(--of-vh)), max(calc(10 * var(--of-vw)), 120px)) 4.4vw min(calc(12 * var(--of-vh)), calc(7.5 * var(--of-vw))); }
+    .ofh__inner { --off-card-w: clamp(200px, calc(35.6 * var(--vu)), 615px); }
+    .ofh__top { display: block; }
+    .ofh__title { margin-top: 0; }
+    .ofh__card {
+      position: absolute; right: 0; top: max(calc(-5 * var(--of-vh)), calc(-3.125 * var(--of-vw)));
+      margin-inline: 0; width: var(--off-card-w); --mat: clamp(8px, 0.9vw, 13px);
+    }
+    .ofh__rule { margin-top: min(calc(8 * var(--of-vh)), calc(5 * var(--of-vw))); }
+    .ofh__row { margin-top: min(calc(7 * var(--of-vh)), calc(4.375 * var(--of-vw))); max-width: calc(100% - var(--off-card-w) - 2 * var(--vu)); gap: 2.5rem; }
+    .ofh__intro { width: auto; font-size: 17px; }
+    .ofh__sig { margin-left: clamp(0px, calc(100% - 542px), calc(9 * var(--vu))); }
+    .ofh__sig :global(.ofh__sig-svg) { width: 102px; height: 84px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html.js .ofh__card, html.js .ofh__intro, html.js .ofh__sig { opacity: 1; visibility: visible; }
+    html.js .ofh__rule { transform: none; }
+  }
+</style>

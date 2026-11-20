@@ -1,0 +1,20 @@
+---
+/** Paragraph that types itself in (see motion/type-reveal.ts). Screen readers get
+ *  the plain text; the per-character spans are aria-hidden. Without JavaScript the
+ *  text is simply visible (html.js gates the hidden state). */
+interface Props { text: string; class?: string; style?: string; cps?: number; startAt?: number }
+const { text, class: cls, style, cps, startAt } = Astro.props;
+const words = text.split(/(\s+)/);
+---
+<p class:list={['tr', cls]} style={style} data-type-reveal data-cps={cps} data-start={startAt}>
+  <span aria-hidden="true">{words.map((w) => /^\s+$/.test(w)
+    ? <span>{w}</span>
+    : <span class="tr__w">{Array.from(w).map((c) => <span data-tr-char>{c}</span>)}</span>)}</span>
+  <span class="sr-only">{text}</span>
+</p>
+
+<style is:global>
+  .tr__w { white-space: nowrap; }
+  html.js .tr [data-tr-char] { opacity: 0; }
+  @media (prefers-reduced-motion: reduce) { html.js .tr [data-tr-char] { opacity: 1; } }
+</style>

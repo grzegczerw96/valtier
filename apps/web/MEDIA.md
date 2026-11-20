@@ -56,3 +56,23 @@ Photo URLs: `https://www.pexels.com/photo/<id>/` · video: `https://www.pexels.c
 | ../svg/quotes.svg | hand-drawn | quote marks |
 
 The lenses reflect `hero.mp4` (Pexels 5423490), which is also the intro footage and the video behind each signature-moment card.
+
+## Off-Field page
+
+All files under `public/media/off/` are built by `scripts/process-offfield.py <pexels-dir>` (run it as
+`python -E` from an empty working directory; cut-outs use rembg 2.0.50 with BiRefNet-general). The
+people shots come from one Pexels studio session (photographer *archifashiondesign*), the same model as the
+Home hero portrait, so Nico stays one person across the site.
+
+| File(s) | Pexels id(s) | Notes |
+|---|---|---|
+| off/hero-print.webp | 9573692 | right half (Nico alone), 514:668 print window |
+| off/fashion/f01–f09.webp | 9573699, 9573695, 9573702, 9573689, 10220087, 9573693, 9573705, 9573712, 10220084 | fashion rail, native ratios, 1000 px tall |
+| off/appear/a01–a04.webp | 39757695, 12153279, 7594122, 30132631 | cropped clear of sponsor boards, club crests, shirt text and a backpack logo |
+| off/pieces/p01–p05.webp | 10220082, 10220085, 10220089, 10220086, 10220083 | eyewear cut-outs on a 2:1 canvas (reflections below the table line cropped first), colourways tinted |
+| off/footer-portrait.webp | 9573695 | grayscale cut-out on a square canvas, anchored bottom-right (Foundation footer) |
+| off/phones/ph01–ph05.mp4 (+ .webp posters) | video 8128031, 9517666, 10349049, 36521302 (9:16 crop), 34631716 | 540×960, 6–7.5 s muted loops |
+| off/appear/v01–v04.mp4 (+ .webp posters) | video 6878209, 36521302, 7586489, 39239777 | 1280×720, 6–8 s muted loops; v04 is cropped below the stadium sponsor boards |
+
+Pexels video 34561859 was downloaded but not used (a real college team's end zone and a sponsor logo on the field).
+The phone UI over the Digital clips (status bar, tabs, action rail, tab bar) is drawn in SVG by `PhoneMock.astro`.

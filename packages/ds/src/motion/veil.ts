@@ -43,6 +43,10 @@ export function holdVeil(p: Promise<unknown>) {
 }
 export function veilHeld() { return !!window.__vHolds?.some((h) => !h.done); }
 
+/** True when the page was reached through an internal page transition (wipe), false
+ *  on a hard load (first-visit loader or none). Some intros only play on transitions. */
+export const arrivedByTransition = () => document.documentElement.getAttribute('data-arrival') === 'transition';
+
 export function liftVeil() {
   document.documentElement.setAttribute('data-veil-lifted', '');
   document.documentElement.classList.remove('veil-on');
@@ -57,4 +61,4 @@ export const VEIL_BOOT = (firstVisitLoader: boolean) =>
   `function pump(dl){do{var f=q.shift();if(!f)break;try{var r=f();if(r&&r.catch)r.catch(function(e){console.error(e)})}catch(e){console.error(e)}}while(q.length&&dl&&!dl.didTimeout&&dl.timeRemaining()>12);if(q.length)ric(pump);else on=0}` +
   `w.vDefer=function(f){q.push(f);if(on)return;on=1;requestAnimationFrame(function(){setTimeout(function(){ric(pump)},0)})};` +
   `w.vIdle=function(){return new Promise(function(r){ric(function(){r()})})};})(window);` +
-  `(function(d){d.classList.add('js');try{var s=sessionStorage;if(s.getItem('v-transition')==='1'||${firstVisitLoader ? 'true' : 'false'})d.classList.add('veil-on');}catch(e){}setTimeout(function(){if(d.classList.contains('veil-on')&&!d.hasAttribute('data-veil-lifted')){d.classList.remove('veil-on');d.setAttribute('data-veil-lifted','');}},6000);})(document.documentElement);`;
+  `(function(d){d.classList.add('js');d.setAttribute('data-arrival','load');try{var s=sessionStorage,t=s.getItem('v-transition')==='1';if(t)d.setAttribute('data-arrival','transition');if(t||${firstVisitLoader ? 'true' : 'false'})d.classList.add('veil-on');}catch(e){}setTimeout(function(){if(d.classList.contains('veil-on')&&!d.hasAttribute('data-veil-lifted')){d.classList.remove('veil-on');d.setAttribute('data-veil-lifted','');}},6000);})(document.documentElement);`;

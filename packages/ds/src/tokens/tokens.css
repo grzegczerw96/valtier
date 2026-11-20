@@ -104,6 +104,9 @@
   --of-vh: max(1vh, calc(var(--min-h) / 100));
   --of-svh: max(1svh, calc(var(--min-h) / 100));
   --of-lvh-p: max(1lvh, calc(var(--min-h-phone) / 100));
+  --of-pvh: max(1vh, calc(var(--min-h-phone) / 100));
+  --of-psvh: max(1svh, calc(var(--min-h-phone) / 100));
+  --of-vw: calc(var(--page-w) / 100);
   --gutter: 1.5rem;
   --gutter-lg: 3rem;
 
