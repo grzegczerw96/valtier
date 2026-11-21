@@ -1,4 +1,4 @@
-# Valtier — On-Field, Home, Off-Field
+# Valtier — On-Field, Home, Off-Field, Journal
 
 A fictional athlete site (Nico Valtier, #18, Northmark Wolves) whose pages
 reproduce the layout, motion system, timings and behaviour of a reference design,
@@ -11,15 +11,16 @@ packages/ds/        @valtier/ds — the design system (separate package)
   src/styles/       fonts.css (self-hosted, metric-matched fallbacks), base.css (reset, type roles, DotReveal, bg layers)
   src/motion/       framework-free TS: scroll (Lenis), dot-reveal, transitions/veil, menu, sound,
                     drift marquee (+ pause/centre), snap-rail, image-rail, type-reveal, fit-title,
-                    film player, cursor, scramble, tone switching, inview helpers
+                    film player, cursor, scramble, tone switching, inview helpers, depth-gl (WebGL depth
+                    slides), notch (file-tab card outline), focus-trap
   src/components/   Astro: SiteNav (+menu), Footer (+panel, signature, partners), Veil, SoundToggle,
                     Cursor, BgLayers, Button, DotReveal, Logo, SocialIcon, Boot, LaneTitle,
                     TypeReveal, ImageRail, BrandTicker, Wordmark, PhoneMock, PieceMarquee
   scripts-build-fonts.py   rebuilds the subset webfonts from Fontsource sources
 apps/web/           the site
-  src/content/      on-field.ts, home.ts, off-field.ts — every number and string on each page
-  src/components/   on-field/, home/, off-field/ — page sections
-  src/pages/        index, on-field, off-field, design-system (living style guide), placeholders for the other nav items
+  src/content/      on-field.ts, home.ts, off-field.ts, journal.ts — every number and string on each page
+  src/components/   on-field/, home/, off-field/, journal/ — page sections
+  src/pages/        index, on-field, off-field, journal, design-system (living style guide), placeholders for the other nav items
   scripts/          gen-textures.py (procedural pebble/grass/light), gen-placeholders.py, serve.mjs
 ```
 
@@ -69,6 +70,10 @@ Chosen by pixel-overlap matching against the reference faces (IoU, cap-height no
 - **Third-party marks** are removed from stock media (no Nike/UEFA cleats; maker lettering painted out of the helmet).
 - **Contrast**: muted text raised from 45% to 52% bone (WCAG AA); minimum 12 px for small labels on phones.
 - **Phones**: season axis no longer clips the last year; carousels hide inactive slides from assistive tech.
+- **Journal**: the endless field's camera easing and throw decay are frame-rate independent (the reference
+  runs faster on 120 Hz screens); captions are placed from the camera maths instead of measuring ~300 entries
+  every frame; live WebGL depth layers are capped at 10 (the reference can exceed the browser's context limit
+  on large screens); the open entry is a real history entry (`?item=`), so Back closes it.
 - **Weight**: ~75 KB JS gzip (reference ~300 KB+), 73 KB fonts (reference ~260 KB), 87 KB texture tile (reference 325 KB),
   sections below the fold initialise lazily, hero video attaches after `load`.
 

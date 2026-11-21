@@ -60,7 +60,8 @@ export const footerVariants: Record<string, FooterCta> = {
   },
 };
 
-export const trophy = { src: B + '/media/cleats/cleat-gold.webp', href: B + '/journal', label: 'Open journal' };
+/** The footer trophy opens the latest journal drop (the gold cleat, see content/journal.ts). */
+export const trophy = { src: B + '/media/cleats/cleat-gold.webp', href: B + '/journal?item=gold-pe', label: 'Open journal' };
 
 /** Behaviour switches.
  *  firstVisitLoader: like the reference, the first visit of a session opens on the

@@ -76,3 +76,21 @@ Home hero portrait, so Nico stays one person across the site.
 
 Pexels video 34561859 was downloaded but not used (a real college team's end zone and a sponsor logo on the field).
 The phone UI over the Digital clips (status bar, tabs, action rail, tab bar) is drawn in SVG by `PhoneMock.astro`.
+
+## Journal page
+
+No new stock: every entry reuses media already listed above, plus art drawn by `scripts/gen-journal.py`
+(`python -E apps/web/scripts/gen-journal.py [function …]`; Pillow, numpy, scipy, fontTools + brotli).
+
+| File(s) | Made from | Notes |
+|---|---|---|
+| journal/huddle.webp (+ -depth) | football.webp | the frame-cut cap is rebuilt from the ball's 180° turn (a ball is point-symmetric), leather darkened, HUDDLE printed along the curve |
+| journal/harbor-king-, ember-18-, gold-pe-, halo-, plunge-depth.webp | cleats c07 / c01 / cleat-gold, home/partner-halo, gloves | depth maps from the alpha (multi-radius blur) + a little luminance |
+| journal/blur-pe.webp (+ -depth) | home/partner-cleat (+ its depth) | gold pair re-plated in chrome, both cropped together |
+| journal/rumble, num-2, num-9, jersey-18, two-star, crest-pa, wolves-plate.webp | Audiowide / Saira (OFL) | die-cut stickers: metallic bevel fills, white backing that follows the silhouette; the plate redraws `crest.svg` |
+| journal/arena-99.webp | cards/card-02 | "99 CLUB" and a PIXEL ARENA badge on the card |
+| journal/player-, volta-, portrait-, back-sticker.webp | influence-player, home/partner-volta, hero/portrait, footer-player | cut-outs on a sticker backing |
+| journal/editorial.webp | off/fashion/f04 | black and white |
+| ../textures/paper.webp | procedural | dark paper fibre, screened at 30% over the purple field |
+
+Entry clips reuse `hero.mp4`, `off/appear/v01–v04.mp4` and `off/phones/ph02–ph05.mp4`.

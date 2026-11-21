@@ -21,6 +21,9 @@ let hidden = false;
 let ducked = 0;
 let bed: { stop: () => void } | null = null;
 let bedTrack: string | null = null;
+/** A page can replace the synth pad with its own generator (see setBedVoice). */
+export type BedVoice = (c: AudioContext, out: GainNode, noise: AudioBuffer) => { level: number; stop: () => void };
+let bedVoice: BedVoice | null = null;
 let lastTick = 0;
 
 function ensure() {
@@ -172,6 +175,12 @@ function startBed() {
     bed = { stop: () => { ramp(out, 1e-4, 0.8); setTimeout(() => { src?.stop(); out.disconnect(); }, 900); } };
     return;
   }
+  if (bedVoice) {
+    const v = bedVoice(c, out, noise);
+    ramp(out, v.level, 2.5);
+    bed = { stop: () => { ramp(out, 1e-4, 0.8); setTimeout(() => { v.stop(); out.disconnect(); }, 900); } };
+    return;
+  }
   // Synth pad: two detuned saws -> slow lowpass sweep, plus soft brown-noise air.
   const lp = c.createBiquadFilter();
   lp.type = 'lowpass';
@@ -228,6 +237,16 @@ export function setBedTrack(url: string | null) {
   if (bed) {
     stopBed();
     if (enabled) startBed();
+  }
+}
+
+/** Swap the ambient bed for a page-specific voice (null restores the pad). */
+export function setBedVoice(v: BedVoice | null) {
+  if (v === bedVoice) return;
+  bedVoice = v;
+  if (bed) {
+    stopBed();
+    if (enabled && !ducked) startBed();
   }
 }
 
