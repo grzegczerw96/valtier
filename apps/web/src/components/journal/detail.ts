@@ -105,7 +105,31 @@ export function createDetail(root: HTMLElement, h: { onClose(): void; onPrev(): 
     scrollQ = Math.max(0, Math.min(Math.min(scrollQ, maxScroll) + d / scale, maxScroll));
     layout();
   };
-  root.addEventListener('wheel', (e) => { if (isOpen) { e.preventDefault(); scrollBy(e.deltaY); } }, { passive: false });
+  // Wheel: over a card taller than the screen it scrolls the card; anywhere else one
+  // gesture steps to the next / previous entry (a trackpad swipe or a run of wheel
+  // clicks counts once: the next step waits until the wheel has been quiet 180 ms).
+  let acc = 0, quiet = 0, locked = false;
+  root.addEventListener('wheel', (e) => {
+    if (!isOpen) return;
+    e.preventDefault();
+    if (closing) return;
+    const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1;
+    const dy = e.deltaY * unit, dx = e.deltaX * unit;
+    if (maxScroll > 0 && card.contains(e.target as Node) && Math.abs(dy) >= Math.abs(dx)) {
+      scrollBy(dy);
+      return;
+    }
+    clearTimeout(quiet);
+    quiet = window.setTimeout(() => { locked = false; acc = 0; }, 180);
+    if (locked) return;
+    acc += Math.abs(dx) > Math.abs(dy) ? dx : dy;
+    if (Math.abs(acc) < 40) return;
+    locked = true;
+    const d = acc;
+    acc = 0;
+    if (d > 0) h.onNext();
+    else h.onPrev();
+  }, { passive: false });
   let touch: { id: number; sy: number; ly: number; lt: number; v: number; captured: boolean } | null = null;
   card.addEventListener('pointerdown', (e) => {
     if (e.pointerType === 'mouse') return;

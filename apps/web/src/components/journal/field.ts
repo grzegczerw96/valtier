@@ -5,7 +5,7 @@
  *  the camera snaps onto the nearest entry. The camera wraps inside one lattice
  *  cell, so the field never ends. While moving, the field eases out to 0.85. */
 import { createItem, type ItemView } from './item';
-import { expanded, fieldScale, heroBox, heroScale, nearest, scaleItem, type Field, type Item, type Lattice } from './layout';
+import { cardLayout, expanded, fieldScale, heroBox, heroScale, nearest, scaleItem, type Field, type Item, type Lattice } from './layout';
 import { CONTENT_MAX, prefersReducedMotion } from '@valtier/ds/motion/env';
 
 export interface FieldApi {
@@ -89,7 +89,31 @@ export function createField(root: HTMLElement, layer: HTMLElement, captions: HTM
   }
 
   function applyStates() {
-    for (const c of copies) c.view.setState(activeId ? (c.item.id === activeId ? 'active' : 'dimmed') : 'idle', hero);
+    if (activeId) return clearance();
+    for (const c of copies) c.view.setState('idle', hero);
+  }
+
+  /** While an entry is open, entries that would sit under the card column or the
+   *  hero fade out completely (the others stay dimmed), so nothing overlaps them. */
+  function clearance() {
+    const it = activeId ? scaledItem(activeId) : null;
+    if (!it) return;
+    const wide = expanded(it);
+    const L = cardLayout(W, wide, H);
+    const pad = 24;
+    const cardL = L.left - pad, cardR = L.left + L.width * L.scale + pad;
+    const hb = heroBox(W, H, wide);
+    const hw = (it.width * hero) / 2 + pad, hh = (it.height * hero) / 2 + pad;
+    for (const c of copies) {
+      if (c.item.id === activeId) { c.view.setState('active', hero); continue; }
+      const [aw, ah] = c.item.fit ?? [c.item.width, c.item.height];
+      const a = (c.item.rotation * Math.PI) / 180, co = Math.abs(Math.cos(a)), si = Math.abs(Math.sin(a));
+      const hx = ((aw * co + ah * si) / 2) * zoom, hy = ((ah * co + aw * si) / 2) * zoom;
+      const sx = W / 2 + zoom * (c.x - cam.x), sy = H / 2 + zoom * (c.y - cam.y);
+      const underCard = sx + hx > cardL && sx - hx < cardR;
+      const underHero = sx + hx > hb.cx - hw && sx - hx < hb.cx + hw && sy + hy > hb.cy - hh && sy - hy < hb.cy + hh;
+      c.view.setState(underCard || underHero ? 'hidden' : 'dimmed', hero);
+    }
   }
 
   // ---------------------------------------------------------------- captions
@@ -206,6 +230,7 @@ export function createField(root: HTMLElement, layer: HTMLElement, captions: HTM
       ? `translate3d(${ex}px, ${ey}px, 0)`
       : `translate(${W / 2}px, ${H / 2}px) scale(${zoom}) translate(${-W / 2}px, ${-H / 2}px) translate3d(${ex}px, ${ey}px, 0)`;
     if (!activeId) updateCaptions(dt);
+    else clearance();
   };
 
   // ---------------------------------------------------------------- input

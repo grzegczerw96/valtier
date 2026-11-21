@@ -3,7 +3,8 @@
  *  WebGL depth layer that mounts only while the entry is near the viewport. */
 import type { Item } from './layout';
 
-export type ItemState = 'idle' | 'active' | 'dimmed';
+/** `hidden`: dimmed and faded out because it would sit under the open card or hero. */
+export type ItemState = 'idle' | 'active' | 'dimmed' | 'hidden';
 const EASE_T = 'cubic-bezier(0.16,1,0.3,1)';
 const EASE_F = 'cubic-bezier(0.65,0.05,0.36,1)';
 
@@ -95,20 +96,20 @@ export function createItem(item: Item, opts: { lightweight: boolean; tabIndex?: 
   const polaroid = item.frame === 'polaroid';
 
   const paint = () => {
-    const active = state === 'active', dimmed = state === 'dimmed';
+    const active = state === 'active', hidden = state === 'hidden', dimmed = state === 'dimmed' || hidden;
     const back = prev !== 'idle' && state === 'idle';
     const lifted = hover && !active && !dimmed;
-    const fd = back ? 0.3 : active || dimmed ? 0.7 : 0.35;
+    const fd = back ? 0.3 : hidden || prev === 'hidden' ? 0.35 : active || dimmed ? 0.7 : 0.35;
     const rot = active ? 0 : item.rotation;
     el.style.transform = `rotate(${rot}deg) scale(${active ? hero : 1})`;
     const shadow = polaroid
       ? lifted ? 'drop-shadow(0 30px 52px rgba(0,0,0,0.5))' : 'drop-shadow(0 14px 26px rgba(0,0,0,0.4))'
       : lifted ? 'drop-shadow(0 36px 62px rgba(0,0,0,0.55))' : 'drop-shadow(0 20px 34px rgba(0,0,0,0.45))';
     el.style.filter = `blur(${dimmed ? 6 : 0}px) brightness(${dimmed ? 0.78 : 1}) saturate(${dimmed ? 0.85 : 1}) ${shadow}`;
-    el.style.opacity = dimmed ? '0.5' : '1';
+    el.style.opacity = hidden ? '0' : dimmed ? '0.5' : '1';
     el.style.zIndex = active ? '40' : dimmed ? '1' : '10';
     el.style.transition = `transform ${back ? 0.42 : 0.9}s ${EASE_T}, filter ${fd}s ${EASE_F}, opacity ${fd}s ${EASE_F}`;
-    el.style.pointerEvents = active ? 'none' : '';
+    el.style.pointerEvents = active || hidden ? 'none' : '';
     tilt.style.setProperty('--jj-lift', lifted ? '1.09' : '1');
     if (lifted) el.dataset.journalLifted = 'true';
     else delete el.dataset.journalLifted;
