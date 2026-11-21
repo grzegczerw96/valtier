@@ -172,14 +172,17 @@ const next = chev('9 18 15 12 9 6');
     position: absolute; display: block; padding: 0; border: 0; background: transparent; cursor: pointer;
     user-select: none; -webkit-user-select: none; transform-origin: center; -webkit-tap-highlight-color: transparent;
   }
-  .jr-field .jr-item { cursor: inherit; }
+  .jr-field .jr-item { cursor: pointer; }
+  .jr-field:active .jr-item { cursor: grabbing; }
   .jr-item:focus-visible { outline: 2px solid var(--color-lavender); outline-offset: 6px; }
   .jr-item__tilt {
     position: relative; width: 100%; height: 100%;
     transform: perspective(900px) rotateX(var(--jj-rx, 0deg)) rotateY(var(--jj-ry, 0deg)) scale(var(--jj-lift, 1));
     transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
   }
-  .jr-item__tilt[data-round] { overflow: hidden; }
+  .jr-item__tilt { display: flex; align-items: center; justify-content: center; }
+  .jr-item__art { position: relative; flex-shrink: 0; }
+  .jr-item__art[data-round] { overflow: hidden; }
   .jr-item img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; -webkit-user-drag: none; }
   .jr-item__polaroid { position: relative; width: 100%; height: 100%; border: var(--mat) solid var(--color-bone); background: var(--color-bone); }
   .jr-item__polaroid img { object-fit: cover; }
@@ -191,13 +194,21 @@ const next = chev('9 18 15 12 9 6');
   .jr-item__depth canvas { width: 100%; height: 100%; display: block; opacity: 0; }
   .jr-item__img--depth { transition: opacity 0.4s ease; }
   .jr-item[data-depth-ready] .jr-item__img--depth { opacity: 0; }
+  /* Same finish as the Home cards (DS --sheen-sweep: raised-cosine band, no edges). */
+  .jr-sheen, .jr-iris, .jr-ring { pointer-events: none; position: absolute; inset: 0; border-radius: inherit; }
+  .jr-sheen, .jr-iris { -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
   .jr-sheen {
-    pointer-events: none; position: absolute; inset: 0; opacity: 0; transition: opacity 0.25s ease;
-    background: linear-gradient(102deg, transparent 36%, rgba(255, 255, 255, 0.28) 46%, rgba(255, 255, 255, 0.62) 50%, rgba(255, 255, 255, 0.28) 54%, transparent 64%);
-    background-size: 260% 100%; background-position-x: calc(var(--jj-mxf, 0.5) * 100%); mix-blend-mode: screen;
-    -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
+    background: var(--sheen-sweep); background-size: 260% 100%; background-position-x: calc(var(--jj-mxf, 0.5) * 100%);
+    mix-blend-mode: screen; opacity: 0; transition: opacity 0.25s ease;
   }
+  .jr-iris {
+    background: linear-gradient(115deg, rgba(120, 90, 255, 0.16) 0%, rgba(255, 120, 200, 0) 38%, rgba(255, 180, 90, 0) 62%, rgba(90, 200, 255, 0.16) 100%);
+    mix-blend-mode: color-dodge; opacity: 0; transition: opacity 0.3s ease;
+  }
+  .jr-ring { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0), inset 0 0 0 rgba(255, 255, 255, 0); transition: box-shadow 0.25s ease; }
   .jr-item[data-journal-lifted] .jr-sheen { opacity: 0.85; }
+  .jr-item[data-journal-lifted] .jr-iris { opacity: 0.7; }
+  .jr-item[data-journal-lifted] .jr-ring { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), inset 0 0 18px rgba(255, 255, 255, 0.18); }
 
   .jr-captions { pointer-events: none; position: absolute; inset: 0; z-index: 3; opacity: 1; filter: blur(0); }
   .jr[data-open] .jr-captions { opacity: 0; filter: blur(8px); transition: opacity 0.1s ease-out, filter 0.1s ease-out; }

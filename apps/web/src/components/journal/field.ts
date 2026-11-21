@@ -5,7 +5,7 @@
  *  the camera snaps onto the nearest entry. The camera wraps inside one lattice
  *  cell, so the field never ends. While moving, the field eases out to 0.85. */
 import { createItem, type ItemView } from './item';
-import { expanded, fieldScale, heroBox, heroScale, nearest, type Field, type Item, type Lattice } from './layout';
+import { expanded, fieldScale, heroBox, heroScale, nearest, scaleItem, type Field, type Item, type Lattice } from './layout';
 import { CONTENT_MAX, prefersReducedMotion } from '@valtier/ds/motion/env';
 
 export interface FieldApi {
@@ -60,7 +60,7 @@ export function createField(root: HTMLElement, layer: HTMLElement, captions: HTM
     copies = [];
     copyOf.clear();
     S = fieldScale(W, H);
-    scaled = source.map((it) => (S === 1 ? it : { ...it, x: it.x * S, y: it.y * S, width: Math.round(it.width * S), height: Math.round(it.height * S) }));
+    scaled = source.map((it) => (S === 1 ? it : scaleItem(it, S, true)));
     L = { w: field.tileW * S, h: field.tileH * S, sx: field.shearX * S, sy: field.shearY * S };
     const pad = 700 * S;
     const nc = Math.max(1, Math.ceil((W / 2 + 0.3 * L.w + pad) / L.w));
@@ -133,9 +133,8 @@ export function createField(root: HTMLElement, layer: HTMLElement, captions: HTM
       const p = nearest(it.x, it.y, cam.x, cam.y, L);
       const sx = cx + zoom * (p.x - cam.x), sy = cy + zoom * (p.y - cam.y);
       const a = (it.rotation * Math.PI) / 180, co = Math.abs(Math.cos(a)), si = Math.abs(Math.sin(a));
-      // a lifted (hovered) entry grows 1.09x, and its caption moves down with it
-      const lift = it.id === hovered ? 1.09 : 1;
-      const hy = ((it.height * co + it.width * si) / 2) * zoom * lift;
+      // From the entry's box (its lift is inside the box, so the caption stays put).
+      const hy = ((it.height * co + it.width * si) / 2) * zoom;
       const onScreen = sx > -200 && sx < W + 200 && sy > -200 && sy < H + 200;
       if (onScreen) {
         c.ax = sx;
@@ -210,12 +209,6 @@ export function createField(root: HTMLElement, layer: HTMLElement, captions: HTM
   };
 
   // ---------------------------------------------------------------- input
-  let hovered: string | null = null;
-  layer.addEventListener('pointerover', (e) => {
-    if (e.pointerType !== 'mouse') return;
-    hovered = (e.target as Element).closest<HTMLElement>('[data-journal-item]')?.dataset.journalItem ?? null;
-  });
-  layer.addEventListener('pointerleave', () => (hovered = null));
   let drag: { id: number; sx: number; sy: number; camX: number; camY: number; t: number; lx: number; ly: number; dist: number } | null = null;
   let lastOpen = 0;
   let tick: ((k: number) => void) | null = null;

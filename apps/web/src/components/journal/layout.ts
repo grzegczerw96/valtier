@@ -9,6 +9,17 @@ export interface Lattice { w: number; h: number; sx: number; sy: number }
 /** Video and article entries get the wide card (the media sits in the card). */
 export const expanded = (it: Pick<Item, 'kind'>) => it.kind === 'video' || it.kind === 'post';
 
+/** An item at another scale (box, art and optionally its position). */
+export function scaleItem(it: Item, k: number, pos: boolean): Item {
+  const r = (v: number) => Math.round(v * k);
+  return {
+    ...it,
+    ...(pos ? { x: it.x * k, y: it.y * k } : {}),
+    width: r(it.width), height: r(it.height),
+    ...(it.fit ? { fit: [r(it.fit[0]), r(it.fit[1])] as [number, number] } : {}),
+  };
+}
+
 /** Desktop field scale: 1 at 1440 x 900, 0.45 .. 1.8. */
 export const fieldScale = (w: number, h: number) => Math.min(1.8, Math.max(0.45, Math.min(Math.min(w, CONTENT_MAX) / 1440, h / 900)));
 

@@ -91,6 +91,7 @@ No new stock: every entry reuses media already listed above, plus art drawn by `
 | journal/arena-99.webp | cards/card-02 | "99 CLUB" and a PIXEL ARENA badge on the card |
 | journal/player-, volta-, portrait-, back-sticker.webp | influence-player, home/partner-volta, hero/portrait, footer-player | cut-outs on a sticker backing |
 | journal/editorial.webp | off/fashion/f04 | black and white |
+| journal/forge-box.webp | home/partner-forge | the front box alone |
 | ../textures/paper.webp | procedural | dark paper fibre, screened at 30% over the purple field |
 
 Entry clips reuse `hero.mp4`, `off/appear/v01–v04.mp4` and `off/phones/ph02–ph05.mp4`.

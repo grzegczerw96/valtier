@@ -2,7 +2,7 @@
  *  copies near the viewport (re-culled every 80px of travel). Swipes move the
  *  camera 1:1 and a quick release glides with exponential decay (k = 3.5/s). */
 import { createItem, type ItemView } from './item';
-import { latticeScale, type Field, type Item } from './layout';
+import { latticeScale, scaleItem, type Field, type Item } from './layout';
 import { prefersReducedMotion } from '@valtier/ds/motion/env';
 
 export interface LatticeApi { focus(id: string): void; setOpen(open: boolean): void }
@@ -46,7 +46,7 @@ export function createLattice(root: HTMLElement, layer: HTMLElement, source: Ite
           seen.add(key);
           let v = nodes.get(key);
           if (!v) {
-            v = createItem({ ...it, width: w, height: h }, { lightweight: true, tabIndex: -1 });
+            v = createItem({ ...scaleItem(it, l, false), width: w, height: h }, { lightweight: true, tabIndex: -1 });
             v.el.setAttribute('aria-hidden', 'true');
             nodes.set(key, v);
             layer.append(v.el);

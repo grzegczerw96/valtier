@@ -31,11 +31,19 @@ export function createItem(item: Item, opts: { lightweight: boolean; tabIndex?: 
 
   const tilt = document.createElement('div');
   tilt.className = 'jr-item__tilt';
-  if (item.radius) {
-    tilt.dataset.round = '';
-    tilt.style.borderRadius = `${(item.width * item.radius) / 100}px`;
-  }
   el.append(tilt);
+
+  // The art: fills the box (photos, polaroids) or sits centred at `fit` inside it.
+  const art = document.createElement('div');
+  art.className = 'jr-item__art';
+  const [aw, ah] = item.fit ?? [item.width, item.height];
+  art.style.width = `${aw}px`;
+  art.style.height = `${ah}px`;
+  if (item.radius) {
+    art.dataset.round = '';
+    art.style.borderRadius = `${(aw * item.radius) / 100}px`;
+  }
+  tilt.append(art);
 
   const img = new Image();
   img.decoding = 'async';
@@ -51,22 +59,33 @@ export function createItem(item: Item, opts: { lightweight: boolean; tabIndex?: 
     grain.className = 'jr-grain';
     grain.setAttribute('aria-hidden', 'true');
     p.append(img, grain);
-    tilt.append(p);
+    art.append(p);
   } else {
     if (item.depth && !opts.lightweight) img.className = 'jr-item__img--depth';
-    tilt.append(img);
+    art.append(img);
   }
 
+  // Specular sweep + iridescence (the Home cards' finish), clipped to the art's
+  // silhouette; cards also get the inner light ring.
   const sheenOn = item.sheen && !item.depth && !opts.lightweight;
   if (sheenOn) {
-    const s = document.createElement('span');
-    s.className = 'jr-sheen';
-    s.setAttribute('aria-hidden', 'true');
-    if (item.frame !== 'polaroid') {
-      s.style.setProperty('-webkit-mask-image', `url("${item.src}")`);
-      s.style.setProperty('mask-image', `url("${item.src}")`);
+    const mask = item.frame !== 'polaroid' && !item.radius ? `url("${item.src}")` : '';
+    for (const cls of ['jr-sheen', 'jr-iris']) {
+      const s = document.createElement('span');
+      s.className = cls;
+      s.setAttribute('aria-hidden', 'true');
+      if (mask) {
+        s.style.setProperty('-webkit-mask-image', mask);
+        s.style.setProperty('mask-image', mask);
+      }
+      art.append(s);
     }
-    tilt.append(s);
+    if (item.radius || item.frame === 'polaroid') {
+      const ring = document.createElement('span');
+      ring.className = 'jr-ring';
+      ring.setAttribute('aria-hidden', 'true');
+      art.append(ring);
+    }
   }
 
   let state: ItemState = 'idle';
@@ -134,11 +153,11 @@ export function createItem(item: Item, opts: { lightweight: boolean; tabIndex?: 
     host.setAttribute('aria-hidden', 'true');
     const canvas = document.createElement('canvas');
     host.append(canvas);
-    tilt.append(host);
+    art.append(host);
     import('@valtier/ds/motion/depth-gl').then(async ({ createDepthSlide }) => {
       if (my !== token || !host) return;
       const s = await createDepthSlide(canvas, {
-        src: item.depth!.src, depth: item.depth!.map, aspect: item.width / item.height, overscan: 1, bleed: 0.18, dispScale: 0.18,
+        src: item.depth!.src, depth: item.depth!.map, aspect: aw / ah, overscan: 1, bleed: 0.18, dispScale: 0.18,
         onReady: () => { if (my === token) el.dataset.depthReady = ''; },
       });
       if (my !== token || !host) { s?.destroy(); return; }

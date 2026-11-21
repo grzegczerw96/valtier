@@ -528,6 +528,12 @@ def cutout_sticker(path, name, crop=None, max_side=1100, border=18, gray=False):
     save(sticker(im, border), name)
 
 
+def forge_box():
+    """The front box of Home's FORGE trio, alone (a tall box, like the reference's cereal box)."""
+    im = src("home/partner-forge.webp")
+    save(im.crop((480, 0, 1040, 858)), "forge-box.webp")
+
+
 def editorial():
     im = src("off/fashion/f04.webp", "RGB")
     g = ImageOps.autocontrast(ImageOps.grayscale(im), cutoff=1)
@@ -581,6 +587,7 @@ def main():
     cutout_sticker("hero/portrait.webp", "portrait-sticker.webp", crop=(0.22, 0.0, 0.78, 1.0), border=20)
     cutout_sticker("footer-player.webp", "back-sticker.webp", border=20)
     editorial()
+    forge_box()
     paper()
 
 

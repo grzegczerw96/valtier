@@ -211,3 +211,11 @@ html:not([data-footer-prepared]) .bg-layers__texture--footer { background-image:
 html.js.veil-on:not([data-veil-lifted]):not(:has(> body > .veil))::after {
   content: ""; position: fixed; inset: 0; z-index: var(--z-veil); background: var(--color-ink-deep);
 }
+
+/* Specular sweep for cards and stickers (TiltCard, Journal): a raised-cosine
+   profile, so the band has no visible edges or steps (the reference's 5-stop ramp
+   shows them). Use with background-size: 260% 100% and move background-position-x. */
+:root {
+  --sheen-sweep: linear-gradient(102deg, transparent 36%, rgba(255,255,255,0.000) 36.00%, rgba(255,255,255,0.003) 37.17%, rgba(255,255,255,0.016) 38.33%, rgba(255,255,255,0.046) 39.50%, rgba(255,255,255,0.095) 40.67%, rgba(255,255,255,0.162) 41.83%, rgba(255,255,255,0.243) 43.00%, rgba(255,255,255,0.332) 44.17%, rgba(255,255,255,0.420) 45.33%, rgba(255,255,255,0.501) 46.50%, rgba(255,255,255,0.565) 47.67%, rgba(255,255,255,0.606) 48.83%, rgba(255,255,255,0.620) 50.00%, rgba(255,255,255,0.606) 51.17%, rgba(255,255,255,0.565) 52.33%, rgba(255,255,255,0.501) 53.50%, rgba(255,255,255,0.420) 54.67%, rgba(255,255,255,0.332) 55.83%, rgba(255,255,255,0.243) 57.00%, rgba(255,255,255,0.162) 58.17%, rgba(255,255,255,0.095) 59.33%, rgba(255,255,255,0.046) 60.50%, rgba(255,255,255,0.016) 61.67%, rgba(255,255,255,0.003) 62.83%, rgba(255,255,255,0.000) 64.00%, transparent 64%);
+  --sheen-sweep-back: linear-gradient(258deg, transparent 36%, rgba(255,255,255,0.000) 36.00%, rgba(255,255,255,0.003) 37.17%, rgba(255,255,255,0.016) 38.33%, rgba(255,255,255,0.046) 39.50%, rgba(255,255,255,0.095) 40.67%, rgba(255,255,255,0.162) 41.83%, rgba(255,255,255,0.243) 43.00%, rgba(255,255,255,0.332) 44.17%, rgba(255,255,255,0.420) 45.33%, rgba(255,255,255,0.501) 46.50%, rgba(255,255,255,0.565) 47.67%, rgba(255,255,255,0.606) 48.83%, rgba(255,255,255,0.620) 50.00%, rgba(255,255,255,0.606) 51.17%, rgba(255,255,255,0.565) 52.33%, rgba(255,255,255,0.501) 53.50%, rgba(255,255,255,0.420) 54.67%, rgba(255,255,255,0.332) 55.83%, rgba(255,255,255,0.243) 57.00%, rgba(255,255,255,0.162) 58.17%, rgba(255,255,255,0.095) 59.33%, rgba(255,255,255,0.046) 60.50%, rgba(255,255,255,0.016) 61.67%, rgba(255,255,255,0.003) 62.83%, rgba(255,255,255,0.000) 64.00%, transparent 64%);
+}
