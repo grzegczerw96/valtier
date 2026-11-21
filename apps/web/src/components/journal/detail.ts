@@ -54,8 +54,11 @@ export function createDetail(root: HTMLElement, h: { onClose(): void; onPrev(): 
     const over = natural > maxH;
     maxScroll = over ? natural - maxH : 0;
     const q = Math.min(scrollQ, maxScroll);
-    const ch = over ? Math.max(maxH, natural - q) : Math.max(natural, minH);
-    const y = over ? L.topOffset : Math.max(L.topOffset, H - L.bottomMargin - ch * L.scale);
+    // Deliberate change from the reference: the card always spans the full column
+    // (top gutter to bottom gutter), so it never moves or resizes between entries.
+    void minH;
+    const ch = over ? Math.max(maxH, natural - q) : maxH;
+    const y = L.topOffset;
     const inner = ch - PAD_TOP - PAD_BOTTOM;
     card.style.top = `${y}px`;
     card.style.height = `${ch}px`;
@@ -194,8 +197,18 @@ export function createDetail(root: HTMLElement, h: { onClose(): void; onPrev(): 
     const showBody = !!it.body || !wide;
     body.hidden = !showBody;
     body.textContent = it.body ?? DEFAULT_BODY;
-    media.hidden = !(it.kind === 'video' && it.video);
+    // Every card leads with a 16:9 frame: the clip, or the entry's still photo.
+    media.hidden = false;
     if (it.kind === 'video' && it.video) unmountVideo = mountVideo(media, it.video, it.label, true, withSound);
+    else {
+      const img = new Image();
+      img.className = 'jr-media__still';
+      img.src = it.still ?? it.src;
+      img.alt = it.alt;
+      img.draggable = false;
+      media.append(img);
+      unmountVideo = () => media.replaceChildren();
+    }
     fillCommon(root, it, { brand: '[data-jr-brand]', rows: '[data-jr-rows]', ctaWrap: '[data-jr-cta-wrap]', cta: '[data-jr-cta]', post: '[data-jr-post]' }, true);
     scrollQ = 0;
   }

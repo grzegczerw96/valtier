@@ -16,6 +16,8 @@ export interface JournalItem {
   id: string;
   src: string;
   alt: string;
+  /** Photo for the card's 16:9 frame (entries without a clip). */
+  still?: string;
   x: number;
   y: number;
   width: number;
@@ -75,6 +77,7 @@ export const items: JournalItem[] = [
   },
   {
     id: 'harbor-king', src: m('cleats/c07.webp'), alt: 'Black and gold cleat',
+    still: m('records/r06.webp'),
     depth: { src: m('cleats/c07.webp'), map: m('journal/harbor-king-depth.webp') },
     x: -1550.67, y: -800.92, width: 449, height: 379, fit: [392, 350], rotation: -5.6, frame: 'bare', sheen: false,
     label: 'Harbor King', brand: 'Northline', category: 'Feature',
@@ -84,6 +87,7 @@ export const items: JournalItem[] = [
   },
   {
     id: 'halo-studio', src: m('home/partner-halo.webp'), alt: 'Bone-white studio headphones',
+    still: m('off/phones/ph04.webp'),
     depth: { src: m('home/partner-halo.webp'), map: m('journal/halo-depth.webp') },
     x: -763.69, y: -871.84, width: 429, height: 537, fit: [366, 377], rotation: -4.5, frame: 'bare', sheen: true,
     label: 'The Halo Studio Cans', brand: 'Halo Audio', category: 'Style',
@@ -93,6 +97,7 @@ export const items: JournalItem[] = [
   },
   {
     id: 'forge-fuel', src: m('journal/forge-box.webp'), alt: 'FORGE box with Nico Valtier on the front',
+    still: m('career.webp'),
     x: -50.13, y: -807.6, width: 337, height: 496, fit: [318, 487], rotation: -3.4, frame: 'bare', sheen: false,
     label: 'Forge 18 Fuel', brand: 'Forge', category: 'Collaboration',
     body: 'His own Forge box: oat clusters and honey crunch in a purple-and-gold run, back on shelves for training camp.',
@@ -101,6 +106,7 @@ export const items: JournalItem[] = [
   },
   {
     id: 'arena-99', src: m('journal/arena-99.webp'), alt: 'Pixel Arena 99 Club card',
+    still: m('off/phones/ph01.webp'),
     x: 691.58, y: -886.67, width: 487, height: 609, fit: [372, 546], rotation: 2.5, frame: 'bare', radius: 4, sheen: true,
     label: 'Pixel Arena 99 Club', brand: 'Pixel Arena', category: 'Digital',
     body: 'Three straight years rated 99 overall in Pixel Arena 24, 25 and 26. The 99 Club is video game royalty, and Nico keeps renewing his membership.',
@@ -109,6 +115,7 @@ export const items: JournalItem[] = [
   },
   {
     id: 'ember-18', src: m('cleats/c01.webp'), alt: 'Black and red cleat',
+    still: m('reels/reel-07.webp'),
     depth: { src: m('cleats/c01.webp'), map: m('journal/ember-18-depth.webp') },
     x: 1491.4, y: -806.77, width: 415, height: 351, fit: [340, 304], rotation: 3.6, frame: 'bare', sheen: true,
     label: 'Northline x Valtier PE: Ember 18', brand: 'Northline', category: 'Footwear',
@@ -118,6 +125,7 @@ export const items: JournalItem[] = [
   },
   {
     id: 'milan-menswear', src: m('off/fashion/f02.webp'), alt: 'Nico Valtier in chained round sunglasses',
+    still: m('off/fashion/f01.webp'),
     x: -1666.72, y: -1767.62, width: 368, height: 553, rotation: 6.6, frame: 'polaroid', sheen: true,
     label: '2025 Milan Menswear', brand: 'Atlas & Co', category: 'Fashion',
     body: 'Nico in an all-black Atlas & Co look, front row for the label’s Spring/Summer 2025 menswear show.',
@@ -126,6 +134,7 @@ export const items: JournalItem[] = [
   },
   {
     id: 'gala-arrival', src: m('off/appear/a03.webp'), alt: 'Two guests stepping onto a red carpet',
+    still: m('off/appear/a03.webp'),
     x: -911.44, y: -1698.86, width: 467, height: 312, rotation: 5.1, frame: 'polaroid', sheen: true,
     label: 'Harbor Gala Arrival', brand: 'Bravura', category: 'Off-Field',
     body: 'The Wolves’ season-opening gala on the Port Alder waterfront, with Bravura dressing the whole receiver room for the carpet.',
@@ -134,6 +143,7 @@ export const items: JournalItem[] = [
   },
   {
     id: 'kestrel-editorial', src: m('journal/editorial.webp'), alt: 'Black and white studio portrait, back to back',
+    still: m('off/fashion/f03.webp'),
     x: -147.79, y: -1762.11, width: 350, height: 437, rotation: 4.9, frame: 'polaroid', sheen: true,
     label: 'Kestrel Editorial', brand: 'Kestrel', category: 'Campaign',
     body: 'Black and white, chain up, shades on. A studio frame from the Kestrel shoot.',
@@ -142,6 +152,7 @@ export const items: JournalItem[] = [
   },
   {
     id: 'mvp-card', src: m('cards/card-05.webp'), alt: 'Holographic MVP trading card',
+    still: m('records/r10.webp'),
     x: 589.92, y: -1690.18, width: 428, height: 569, fit: [388, 568], rotation: -2.5, frame: 'bare', radius: 4, sheen: true,
     label: 'The MVP Card', brand: 'Collectible', category: 'Cards',
     body: 'Posted by @nicovaltier on December 22, 2025.',
@@ -150,6 +161,7 @@ export const items: JournalItem[] = [
   },
   {
     id: 'kestrel-stunt', src: m('off/pieces/p02.webp'), alt: 'Violet shield sunglasses on a chain',
+    still: m('off/fashion/f05.webp'),
     x: 1437.86, y: -1761.21, width: 597, height: 298, fit: [472, 236], rotation: 2.8, frame: 'bare', sheen: true,
     label: 'Kestrel Stunt Collection', brand: 'Kestrel', category: 'Eyewear',
     body: 'Nico in two performance-driven styles, the Stunt Wing and the Stunt Glider, built for glare off a white sideline.',
@@ -158,6 +170,7 @@ export const items: JournalItem[] = [
   },
   {
     id: 'kestrel-shoot', src: m('off/fashion/f08.webp'), alt: 'Nico Valtier seated with the crew in front of a white wall',
+    still: m('off/fashion/f07.webp'),
     x: -1647.37, y: -2555.65, width: 345, height: 431, rotation: -6.4, frame: 'polaroid', sheen: true,
     label: 'On Set with Kestrel', brand: 'Kestrel', category: 'Campaign',
     body: 'On set with Kestrel, shooting the signature eyewear series that carries Nico’s name.',
@@ -166,6 +179,7 @@ export const items: JournalItem[] = [
   },
   {
     id: 'gold-pe', src: m('cleats/cleat-gold.webp'), alt: 'Gold cleat',
+    still: m('influence-field.webp'),
     depth: { src: m('cleats/cleat-gold.webp'), map: m('journal/gold-pe-depth.webp') },
     x: -879.93, y: -2630.99, width: 477, height: 402, fit: [385, 344], rotation: -3.5, frame: 'bare', sheen: true,
     label: 'Ninety-Nine PE', brand: 'Northline', category: 'Footwear',
@@ -175,6 +189,7 @@ export const items: JournalItem[] = [
   },
   {
     id: 'cover-story', src: m('off/fashion/f05.webp'), alt: 'Round sunglasses resting on black stone',
+    still: m('off/hero-print.webp'),
     x: -114.36, y: -2561.74, width: 395, height: 263, rotation: -3, frame: 'polaroid', sheen: true,
     label: 'Gridiron Weekly Cover Story', brand: 'Gridiron Weekly', category: 'Feature',
     body: 'Gridiron Weekly’s cover story from 2022: Nico on his career so far, his family, and the river town that raised him.',
@@ -183,6 +198,7 @@ export const items: JournalItem[] = [
   },
   {
     id: 'stadium-walk', src: m('off/appear/a02.webp'), alt: 'Looking over a packed stand from the concourse',
+    still: m('off/appear/a02.webp'),
     x: 579.46, y: -2636.75, width: 324, height: 405, rotation: 6.5, frame: 'polaroid', sheen: true,
     label: 'Concourse Walk', brand: 'Bravura', category: 'Fashion',
     body: 'Nico and former college teammate Theo Hart, dressed to impress on the walk up to the Bravura SS25 show.',
@@ -191,6 +207,7 @@ export const items: JournalItem[] = [
   },
   {
     id: 'bowl-card', src: m('cards/card-04.webp'), alt: 'Gold-framed card of a player in a white helmet',
+    still: m('records/r15.webp'),
     x: 1236.42, y: -2564.23, width: 279, height: 410, fit: [279, 409], rotation: -4.8, frame: 'bare', radius: 4, sheen: true,
     label: 'Port Alder Harbor Bowl', brand: 'Collectible', category: 'Cards',
     body: 'A nod to the night at Port Alder when Nico put four first-half touchdowns on the board in the Harbor Bowl.',
@@ -199,6 +216,7 @@ export const items: JournalItem[] = [
   },
   {
     id: 'blur-pe', src: m('journal/blur-pe.webp'), alt: 'Chrome pair of cleats',
+    still: m('reels/reel-09.webp'),
     depth: { src: m('journal/blur-pe.webp'), map: m('journal/blur-pe-depth.webp') },
     x: -971.33, y: 2629.09, width: 449, height: 207, fit: [219, 198], rotation: -5, frame: 'bare', sheen: true,
     label: 'Northline Blur PE: The Shine', brand: 'Northline', category: 'Footwear',
@@ -215,6 +233,7 @@ export const items: JournalItem[] = [
   },
   {
     id: 'top-100-2025', src: m('journal/num-9.webp'), alt: 'Gold #9 sticker',
+    still: m('records/r09.webp'),
     x: 521.7, y: 2637.35, width: 492, height: 394, fit: [392, 213], rotation: 3.6, frame: 'bare', sheen: true,
     label: 'Nico Valtier (WR, Wolves) | Top 100 Players of 2025', brand: 'Northmark League', category: 'News',
     body: 'Voted the league’s No. 9 player by his peers heading into the 2025 season.',

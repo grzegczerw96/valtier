@@ -6,8 +6,9 @@ export type Item = JournalItem;
 export interface Field { tileW: number; tileH: number; shearX: number; shearY: number }
 export interface Lattice { w: number; h: number; sx: number; sy: number }
 
-/** Video and article entries get the wide card (the media sits in the card). */
-export const expanded = (it: Pick<Item, 'kind'>) => it.kind === 'video' || it.kind === 'post';
+/** The reference gives only video / article entries the wide card. Here every entry
+ *  uses it (each card leads with a clip or a still), so the card never changes size. */
+export const expanded = (_it: Pick<Item, 'kind'>) => true;
 
 /** An item at another scale (box, art and optionally its position). */
 export function scaleItem(it: Item, k: number, pos: boolean): Item {

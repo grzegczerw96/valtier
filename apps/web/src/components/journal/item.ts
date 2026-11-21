@@ -118,7 +118,7 @@ export function createItem(item: Item, opts: { lightweight: boolean; tabIndex?: 
 
   if (!opts.lightweight) {
     el.addEventListener('pointerenter', (e) => {
-      if (e.pointerType !== 'mouse') return;
+      if (e.pointerType !== 'mouse' || el.closest('[data-dragging]')) return;
       hover = true;
       paint();
     });

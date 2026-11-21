@@ -94,4 +94,5 @@ No new stock: every entry reuses media already listed above, plus art drawn by `
 | journal/forge-box.webp | home/partner-forge | the front box alone |
 | ../textures/paper.webp | procedural | dark paper fibre, screened at 30% over the purple field |
 
+Card stills (entries without a clip) reuse photos listed above, picked free of maker marks and team names.
 Entry clips reuse `hero.mp4`, `off/appear/v01–v04.mp4` and `off/phones/ph02–ph05.mp4`.

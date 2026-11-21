@@ -196,18 +196,21 @@ const next = chev('9 18 15 12 9 6');
   .jr-item[data-depth-ready] .jr-item__img--depth { opacity: 0; }
   /* Same finish as the Home cards (DS --sheen-sweep: raised-cosine band, no edges). */
   .jr-sheen, .jr-iris, .jr-ring { pointer-events: none; position: absolute; inset: 0; border-radius: inherit; }
-  .jr-sheen, .jr-iris { -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+  /* Not painted at rest (blend modes + masks on ~300 copies cost frames while panning);
+     visibility flips at once on lift and after the fade on leave. */
+  .jr-sheen, .jr-iris { -webkit-mask-size: 100% 100%; mask-size: 100% 100%; visibility: hidden; }
+  .jr-item[data-journal-lifted] :is(.jr-sheen, .jr-iris) { visibility: visible; }
   .jr-sheen {
     background: var(--sheen-sweep); background-size: 260% 100%; background-position-x: calc(var(--jj-mxf, 0.5) * 100%);
-    mix-blend-mode: screen; opacity: 0; transition: opacity 0.25s ease;
+    mix-blend-mode: screen; opacity: 0; transition: opacity 0.25s ease, visibility 0s 0.25s;
   }
   .jr-iris {
     background: linear-gradient(115deg, rgba(120, 90, 255, 0.16) 0%, rgba(255, 120, 200, 0) 38%, rgba(255, 180, 90, 0) 62%, rgba(90, 200, 255, 0.16) 100%);
-    mix-blend-mode: color-dodge; opacity: 0; transition: opacity 0.3s ease;
+    mix-blend-mode: color-dodge; opacity: 0; transition: opacity 0.3s ease, visibility 0s 0.3s;
   }
   .jr-ring { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0), inset 0 0 0 rgba(255, 255, 255, 0); transition: box-shadow 0.25s ease; }
-  .jr-item[data-journal-lifted] .jr-sheen { opacity: 0.85; }
-  .jr-item[data-journal-lifted] .jr-iris { opacity: 0.7; }
+  .jr-item[data-journal-lifted] .jr-sheen { opacity: 0.85; transition: opacity 0.25s ease, visibility 0s; }
+  .jr-item[data-journal-lifted] .jr-iris { opacity: 0.7; transition: opacity 0.3s ease, visibility 0s; }
   .jr-item[data-journal-lifted] .jr-ring { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), inset 0 0 18px rgba(255, 255, 255, 0.18); }
 
   .jr-captions { pointer-events: none; position: absolute; inset: 0; z-index: 3; opacity: 1; filter: blur(0); }
@@ -261,6 +264,7 @@ const next = chev('9 18 15 12 9 6');
   .jr-media { position: relative; width: 100%; aspect-ratio: 16 / 9; margin-bottom: 28px; overflow: hidden; border-radius: 10px; background: color-mix(in oklab, var(--color-ink-deep) 10%, transparent); }
   .jr-media[hidden] { display: none; }
   .jr-media video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+  .jr-media__still { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 35%; }
   .jr-card__text { display: flex; flex-direction: column; gap: 16px; }
   .jr-card__h { margin: 0; font-family: var(--font-body); font-weight: 800; font-size: 30px; line-height: 1.07; letter-spacing: -0.025em; color: var(--color-ink-deep); }
   @media (min-width: 768px) { .jr-card__h { font-size: 40px; } }

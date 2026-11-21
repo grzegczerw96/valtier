@@ -42,16 +42,38 @@ export function createField(root: HTMLElement, layer: HTMLElement, captions: HTM
   let lastClose = -1e9;
   let holdUntil = 0;
 
+  // Depth layers: which copies are near the viewport (IO), mounted one at a time and
+  // only while the field is at rest (creating a WebGL context mid-drag stalls frames).
+  const near = new Set<Copy>();
   const io = new IntersectionObserver(
     (entries) => {
       for (const e of entries) {
         const c = copyOf.get(e.target as HTMLElement);
-        c?.view.setDepth(e.isIntersecting && (!activeId || c.item.id === activeId));
+        if (!c) continue;
+        if (e.isIntersecting) near.add(c);
+        else { near.delete(c); mounted.delete(c); c.view.setDepth(false); }
       }
+      queueDepth();
     },
     { rootMargin: '75%' },
   );
   const copyOf = new Map<HTMLElement, Copy>();
+  let depthT = 0;
+  const mounted = new Set<Copy>();
+  function queueDepth() {
+    clearTimeout(depthT);
+    depthT = window.setTimeout(() => {
+      if (moving || drag) return;
+      for (const c of mounted) if (!near.has(c) || (activeId && c.item.id !== activeId)) { c.view.setDepth(false); mounted.delete(c); }
+      for (const c of near) {
+        if (mounted.has(c) || (activeId && c.item.id !== activeId)) continue;
+        c.view.setDepth(true);
+        mounted.add(c);
+        queueDepth(); // next one on a later task
+        return;
+      }
+    }, 120);
+  }
 
   function scaledItem(id: string) { return scaled.find((s) => s.id === id); }
 
@@ -59,6 +81,8 @@ export function createField(root: HTMLElement, layer: HTMLElement, captions: HTM
     for (const c of copies) { io.unobserve(c.view.el); c.view.destroy(); }
     copies = [];
     copyOf.clear();
+    near.clear();
+    mounted.clear();
     S = fieldScale(W, H);
     scaled = source.map((it) => (S === 1 ? it : scaleItem(it, S, true)));
     L = { w: field.tileW * S, h: field.tileH * S, sx: field.shearX * S, sy: field.shearY * S };
@@ -221,7 +245,7 @@ export function createField(root: HTMLElement, layer: HTMLElement, captions: HTM
     const speed = Math.hypot(vel.x, vel.y);
     const isMoving = !activeId && (!!drag || speed > 40 || now - lastWheel < 160);
     if (isMoving) moving = true;
-    else if (moving && !activeId) { moving = false; snapToNearest(); }
+    else if (moving && !activeId) { moving = false; snapToNearest(); queueDepth(); }
     const z = isMoving && !reduced ? 0.85 : 1;
     zoom += (z - zoom) * (1 - Math.pow(1 - 0.09, f60));
     if (Math.abs(zoom - 1) < 0.0015) zoom = 1;
@@ -252,6 +276,7 @@ export function createField(root: HTMLElement, layer: HTMLElement, captions: HTM
     if (activeId || (e.pointerType === 'mouse' && e.button !== 0)) return;
     try { root.setPointerCapture(e.pointerId); } catch {}
     drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, camX: target.x, camY: target.y, t: performance.now(), lx: e.clientX, ly: e.clientY, dist: 0 };
+    root.setAttribute('data-dragging', '');
     vel.x = vel.y = 0;
   });
   root.addEventListener('pointermove', (e) => {
@@ -265,8 +290,9 @@ export function createField(root: HTMLElement, layer: HTMLElement, captions: HTM
     const t = (now - d.t) / 1000;
     if (t > 0) {
       const mx = e.clientX - d.lx;
-      vel.x = -mx / t;
-      vel.y = -(e.clientY - d.ly) / t;
+      // smoothed (uneven pointer timing otherwise makes throws jumpy)
+      vel.x = 0.75 * (-mx / t) + 0.25 * vel.x;
+      vel.y = 0.75 * (-(e.clientY - d.ly) / t) + 0.25 * vel.y;
       if (Math.abs(mx) > 6) tick?.(Math.min(1, Math.abs(mx) / 28));
     }
     d.t = now; d.lx = e.clientX; d.ly = e.clientY;
@@ -276,6 +302,7 @@ export function createField(root: HTMLElement, layer: HTMLElement, captions: HTM
     if (!d || d.id !== e.pointerId) return;
     try { root.releasePointerCapture(e.pointerId); } catch {}
     drag = null;
+    root.removeAttribute('data-dragging');
     if (e.type === 'pointerup' && d.dist < 6 && !activeId) {
       const hit = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>('[data-journal-item]');
       open(hit?.dataset.journalItem);
@@ -340,7 +367,8 @@ export function createField(root: HTMLElement, layer: HTMLElement, captions: HTM
     activeId = id;
     vel.x = vel.y = 0;
     if (id) {
-      for (const c of copies) if (c.item.depth && c.item.id !== id) c.view.setDepth(false);
+      for (const c of mounted) if (c.item.id !== id) { c.view.setDepth(false); mounted.delete(c); }
+      queueDepth();
       aim(id);
       return;
     }
@@ -353,8 +381,7 @@ export function createField(root: HTMLElement, layer: HTMLElement, captions: HTM
       const p = nearest(it.x, it.y, target.x, target.y, L);
       target.x = p.x; target.y = p.y;
     }
-    io.disconnect();
-    for (const c of copies) if (c.item.depth) io.observe(c.view.el);
+    queueDepth();
   }
 
   // ---------------------------------------------------------------- entrance
@@ -390,5 +417,16 @@ export function createField(root: HTMLElement, layer: HTMLElement, captions: HTM
 
   build();
   requestAnimationFrame(frame);
+  // Decode every entry's art once, off the critical path, so copies scrolling into
+  // view don't decode on the main thread mid-drag.
+  const warm = [...new Set(source.map((it) => it.src))];
+  const next = () => {
+    const src = warm.shift();
+    if (!src) return;
+    const im = new Image();
+    im.src = src;
+    im.decode().catch(() => {}).finally(() => (window.requestIdleCallback ?? setTimeout)(next));
+  };
+  window.setTimeout(next, 1500);
   return { setActive, entrance, release, heroScaleFor: (id) => { const it = scaledItem(id); return it ? heroScale(it, W, H, expanded(it)) : 1; } };
 }
