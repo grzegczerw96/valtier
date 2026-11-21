@@ -21,6 +21,9 @@ let hidden = false;
 let ducked = 0;
 let bed: { stop: () => void } | null = null;
 let bedTrack: string | null = null;
+/** A page can replace the synth pad with its own generator (see setBedVoice). */
+export type BedVoice = (c: AudioContext, out: GainNode, noise: AudioBuffer) => { level: number; stop: () => void };
+let bedVoice: BedVoice | null = null;
 let lastTick = 0;
 
 function ensure() {
@@ -33,7 +36,7 @@ function ensure() {
   master.connect(ctx.destination);
 
   const verb = ctx.createConvolver();
-  verb.buffer = impulse(ctx, 3.4, 2);
+  armReverb(ctx, verb);
   const wet = ctx.createGain();
   wet.gain.value = 0.62;
   fx = ctx.createGain();
@@ -47,8 +50,25 @@ function ensure() {
   bedBus = ctx.createGain();
   bedBus.gain.value = 1;
   route(bedBus, 0.45);
-  noise = brown(ctx, 4);
+  noise = brown(ctx);
   return ctx;
+}
+
+/** Loading the impulse into a ConvolverNode runs its FFT set-up on the main thread
+ *  (~200 ms for 3.4 s). Doing that on the first press stalled whatever the press
+ *  started (a drag), so the reverb is attached once input has been quiet for 0.9 s;
+ *  until then the wet path is simply silent. */
+function armReverb(c: AudioContext, verb: ConvolverNode) {
+  let last = performance.now();
+  const touch = () => (last = performance.now());
+  const evs = ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchmove'] as const;
+  evs.forEach((e) => window.addEventListener(e, touch, { passive: true }));
+  const t = window.setInterval(() => {
+    if (performance.now() - last < 900) return;
+    clearInterval(t);
+    evs.forEach((e) => window.removeEventListener(e, touch));
+    verb.buffer = impulse(c);
+  }, 300);
 }
 
 function route(node: GainNode, send: number) {
@@ -59,25 +79,35 @@ function route(node: GainNode, send: number) {
   s.connect(fx);
 }
 
-function impulse(c: AudioContext, seconds: number, decay: number) {
-  const len = Math.floor(c.sampleRate * seconds);
-  const b = c.createBuffer(2, len, c.sampleRate);
-  for (let ch = 0; ch < 2; ch++) {
-    const d = b.getChannelData(ch);
-    for (let i = 0; i < len; i++) d[i] = (2 * Math.random() - 1) * Math.pow(1 - i / len, decay);
-  }
+/* The reverb impulse and the noise bed are ~0.5 M random samples: generating them
+   on the first press stalled the page for ~200 ms (a visible hitch when that press
+   starts a drag). They are computed in an idle slot after load instead, and the
+   press only copies them into AudioBuffers. */
+const PRE_RATE = 48000;
+let pre: { verb: [Float32Array, Float32Array]; noise: Float32Array } | null = null;
+function precompute() {
+  if (pre) return pre;
+  const len = Math.floor(PRE_RATE * 3.4);
+  const verb = [new Float32Array(len), new Float32Array(len)] as [Float32Array, Float32Array];
+  for (const d of verb) for (let i = 0; i < len; i++) { const k = 1 - i / len; d[i] = (2 * Math.random() - 1) * k * k; }
+  const n = new Float32Array(PRE_RATE * 4);
+  let l = 0;
+  for (let i = 0; i < n.length; i++) { l = (l + 0.02 * (2 * Math.random() - 1)) / 1.02; n[i] = 3.5 * l; }
+  return (pre = { verb, noise: n });
+}
+
+function impulse(c: AudioContext) {
+  const p = precompute();
+  const b = c.createBuffer(2, p.verb[0].length, PRE_RATE);
+  b.copyToChannel(p.verb[0], 0);
+  b.copyToChannel(p.verb[1], 1);
   return b;
 }
 
-function brown(c: AudioContext, seconds: number) {
-  const len = Math.floor(c.sampleRate * seconds);
-  const b = c.createBuffer(1, len, c.sampleRate);
-  const d = b.getChannelData(0);
-  let l = 0;
-  for (let i = 0; i < len; i++) {
-    l = (l + 0.02 * (2 * Math.random() - 1)) / 1.02;
-    d[i] = 3.5 * l;
-  }
+function brown(c: AudioContext) {
+  const p = precompute();
+  const b = c.createBuffer(1, p.noise.length, PRE_RATE);
+  b.copyToChannel(p.noise, 0);
   return b;
 }
 
@@ -172,6 +202,12 @@ function startBed() {
     bed = { stop: () => { ramp(out, 1e-4, 0.8); setTimeout(() => { src?.stop(); out.disconnect(); }, 900); } };
     return;
   }
+  if (bedVoice) {
+    const v = bedVoice(c, out, noise);
+    ramp(out, v.level, 2.5);
+    bed = { stop: () => { ramp(out, 1e-4, 0.8); setTimeout(() => { v.stop(); out.disconnect(); }, 900); } };
+    return;
+  }
   // Synth pad: two detuned saws -> slow lowpass sweep, plus soft brown-noise air.
   const lp = c.createBiquadFilter();
   lp.type = 'lowpass';
@@ -231,6 +267,16 @@ export function setBedTrack(url: string | null) {
   }
 }
 
+/** Swap the ambient bed for a page-specific voice (null restores the pad). */
+export function setBedVoice(v: BedVoice | null) {
+  if (v === bedVoice) return;
+  bedVoice = v;
+  if (bed) {
+    stopBed();
+    if (enabled && !ducked) startBed();
+  }
+}
+
 /* ---- Public state ------------------------------------------------------ */
 const listeners = new Set<(on: boolean) => void>();
 export const isSoundOn = () => enabled;
@@ -245,6 +291,12 @@ export async function setSound(on: boolean, persist = false) {
     try { localStorage.setItem(KEY, on ? 'on' : 'off'); } catch {}
   }
   listeners.forEach((f) => f(on));
+  if (!ctx) {
+    if (!on) return;
+    // the sound toggle (persist) starts at once; the automatic first-press unlock waits
+    if (!persist) await quiet();
+    if (!enabled) return;
+  }
   const c = ensure();
   if (!c) return;
   if (on) {
@@ -258,6 +310,28 @@ export async function setSound(on: boolean, persist = false) {
   }
 }
 
+/** Creating the AudioContext blocks the main thread (~160 ms in Chrome on Windows:
+ *  the audio device opens synchronously). On the first press that froze whatever
+ *  the press started (a drag, a throw), so the context is created once input has
+ *  been quiet for 1.5 s. The page keeps its user activation, so it may still start. */
+let quietP: Promise<void> | null = null;
+function quiet(ms = 1500) {
+  if (quietP) return quietP;
+  quietP = new Promise<void>((resolve) => {
+    let last = performance.now();
+    const touch = () => (last = performance.now());
+    const evs = ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchmove', 'scroll'] as const;
+    evs.forEach((e) => window.addEventListener(e, touch, { passive: true, capture: true }));
+    const t = window.setInterval(() => {
+      if (performance.now() - last < ms) return;
+      clearInterval(t);
+      evs.forEach((e) => window.removeEventListener(e, touch, { capture: true }));
+      resolve();
+    }, 250);
+  });
+  return quietP;
+}
+
 /** Default state + autoplay unlock on the first press. */
 export function initSound() {
   let stored: string | null = null;
@@ -269,6 +343,7 @@ export function initSound() {
   enabled = true;
   listeners.forEach((f) => f(true));
   window.addEventListener('pointerdown', () => setSound(true), { once: true });
+  (window.requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1200)))(() => precompute(), { timeout: 4000 });
   document.addEventListener('visibilitychange', () => {
     hidden = document.hidden;
     applyMaster(0.4);

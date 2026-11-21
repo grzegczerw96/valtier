@@ -1,0 +1,342 @@
+---
+/** Journal: an endless, sheared field of entries on purple paper.
+ *  Desktop (fine pointer, >= 768): drag / wheel pans a camera that glides with
+ *  inertia and settles on the nearest entry; entries tilt and catch a light sweep
+ *  under the cursor, depth shots parallax in WebGL, and captions type themselves
+ *  under the entries near the centre. Clicking opens a "file tab" card on the left
+ *  while the entry flies to the right as a hero (prev / next arrows below it).
+ *  Phones: a lighter lattice you swipe with momentum; a tap opens a full sheet.
+ *  The open entry lives in ?item=<id> (back / forward work; shareable). */
+import Button from '@valtier/ds/components/Button.astro';
+import Logo from '@valtier/ds/components/Logo.astro';
+import { withBase } from '@valtier/ds/lib/base';
+import { items, field, copy, latestId } from '../../content/journal';
+
+const data = JSON.stringify({ items, field, latestId });
+const chev = (d: string) =>
+  `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="${d}"/></svg>`;
+const prev = chev('15 18 9 12 15 6');
+const next = chev('9 18 15 12 9 6');
+---
+<div class="jr" data-journal-page data-lenis-prevent data-tone="dark">
+  <div class="jr__paper" aria-hidden="true"></div>
+  <div class="jr__dim" aria-hidden="true"></div>
+
+  <div class="jr-field" data-jr-field hidden>
+    <div class="jr-captions" data-jr-captions aria-hidden="true"></div>
+    <div class="jr-layer" data-jr-layer></div>
+  </div>
+  <div class="jr-lattice" data-jr-lattice hidden>
+    <div class="jr-lattice__layer" data-jr-lattice-layer></div>
+  </div>
+
+  <h1 class="display jr__title"><span>{copy.title}</span></h1>
+  <p class="jr__hint" data-jr-hint>
+    <span class="jr__hint-touch">{copy.hintMobile}</span><span class="jr__hint-fine">{copy.hint}</span>
+  </p>
+
+  <!-- Crawlers and no-JS: every entry as a plain link to its open state. -->
+  <ul class="sr-only" data-jr-index>
+    {items.map((it) => <li><a href={`?item=${it.id}`}>{it.label}</a> — {it.brand}, {it.category}</li>)}
+  </ul>
+
+  <!-- Desktop detail -->
+  <div class="jr-detail" data-jr-detail role="dialog" aria-modal="true" aria-label="" hidden>
+    <button type="button" class="jr-detail__backdrop" tabindex="-1" aria-label="Close detail" data-jr-backdrop></button>
+    <a href={withBase('/')} class="jr-detail__home" aria-label="Nico Valtier — home" data-jr-home tabindex="-1" aria-hidden="true">
+      <span><Logo class="jr-detail__home-mark" label="Nico Valtier" /></span>
+    </a>
+    <div class="jr-card" data-jr-card>
+      <svg class="jr-card__shape" aria-hidden="true" preserveAspectRatio="none"><path data-jr-shape fill="var(--color-bone)" /></svg>
+      <div class="jr-card__logos" data-jr-logos>
+        <div class="jr-lock" data-anim>
+          <Logo class="jr-lock__mark" label="Nico Valtier" />
+          <span class="jr-lock__x" aria-hidden="true">×</span>
+          <span class="jr-lock__brand" data-jr-brand></span>
+        </div>
+      </div>
+      <div class="jr-card__body">
+        <div class="jr-card__clip" data-jr-clip>
+          <div class="jr-card__scroll" data-jr-scroll>
+            <div class="jr-card__top" data-jr-top>
+              <div class="jr-media" data-anim data-jr-media hidden></div>
+              <div class="jr-card__text">
+                <h2 class="jr-card__h" data-anim data-jr-h></h2>
+                <p class="jr-card__p" data-anim data-jr-p></p>
+              </div>
+            </div>
+            <div class="jr-card__gap" data-jr-gap aria-hidden="true"></div>
+            <div class="jr-card__bottom" data-jr-bottom>
+              <div class="jr-rows" data-jr-rows></div>
+              <div class="jr-card__cta" data-anim data-jr-cta-wrap>
+                <Button href="#" external variant="dark" size="md" grow={false} class="jr-btn" data-jr-cta>Learn more</Button>
+              </div>
+              <a class="label-sm jr-card__post" data-anim data-jr-post href="#" target="_blank" rel="noreferrer"></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="jr-arrows" data-jr-arrows>
+      <button type="button" class="jr-arrow" aria-label="Previous item" data-jr-prev set:html={prev} />
+      <button type="button" class="jr-arrow" aria-label="Next item" data-jr-next set:html={next} />
+    </div>
+    <button type="button" class="jr-close" aria-label="Close item" data-jr-close>✕</button>
+  </div>
+
+  <!-- Phone sheet -->
+  <div class="jr-sheet" data-jr-sheet role="dialog" aria-modal="true" aria-label="" hidden>
+    <button type="button" class="jr-sheet__close" aria-label="Close item" data-jr-sheet-close>✕</button>
+    <div class="jr-sheet__inner">
+      <div class="jr-lock">
+        <Logo class="jr-lock__mark" label="Nico Valtier" />
+        <span class="jr-lock__x" aria-hidden="true">×</span>
+        <span class="jr-lock__brand" data-jr-sheet-brand></span>
+      </div>
+      <div class="jr-sheet__media" data-jr-sheet-media></div>
+      <div class="jr-sheet__text">
+        <h1 class="jr-sheet__h" data-jr-sheet-h></h1>
+        <p class="jr-sheet__p" data-jr-sheet-p></p>
+      </div>
+      <div class="jr-rows jr-rows--sheet" data-jr-sheet-rows></div>
+      <div class="jr-sheet__cta" data-jr-sheet-cta-wrap>
+        <Button href="#" external variant="dark" size="md" grow={false} class="jr-btn" data-jr-sheet-cta>Learn more</Button>
+      </div>
+      <a class="label-sm jr-sheet__post" data-jr-sheet-post href="#" target="_blank" rel="noreferrer"></a>
+    </div>
+  </div>
+
+  <script type="application/json" data-jr-data set:html={data}></script>
+</div>
+
+<script>
+  window.vDefer(async () => {
+    const { initJournal } = await import('./journal');
+    await window.vIdle();
+    const root = document.querySelector<HTMLElement>('[data-journal-page]');
+    if (root) initJournal(root);
+  });
+</script>
+
+<style is:global>
+  html:has([data-journal-page]), html:has([data-journal-page]) body { overflow: hidden; overscroll-behavior: none; height: 100%; }
+  html:has([data-journal-page]) .bg-layers { display: none; }
+
+  .jr { --mat: 12px; position: fixed; inset: 0; color: var(--color-bone); background-color: var(--color-purple-deep); }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) { .jr { --mat: 7px; } }
+  .jr__paper {
+    position: absolute; inset: 0; pointer-events: none;
+    background: url('/textures/paper.webp') center / cover no-repeat;
+    mix-blend-mode: screen; opacity: 0.3;
+  }
+  .jr__dim { position: absolute; inset: 0; pointer-events: none; background: rgba(18, 10, 38, 0.5); opacity: 0; transition: opacity 0.7s ease; }
+  .jr[data-open] .jr__dim { opacity: 1; }
+
+  .jr__title {
+    pointer-events: none; position: fixed; inset-inline: 0; top: 34px; z-index: 30; margin: 0;
+    text-align: center; font-size: 20px; line-height: 1; text-transform: uppercase; letter-spacing: -0.03em; color: var(--color-bone);
+    font-weight: 700; transition: opacity 0.5s;
+  }
+  /* The reference sets this one at wdth 75; our display face only ships wdth 50,
+     so widen it to the reference's measure (59 x 13 px caps at 20px). */
+  .jr__title > span { display: inline-block; transform: scaleX(1.5); }
+  .jr__hint {
+    pointer-events: none; position: fixed; bottom: 24px; left: 50%; z-index: 30; translate: -50% 0; margin: 0; white-space: nowrap;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: rgb(244 239 230 / 0.4);
+    text-shadow: 0 1px 8px rgba(11, 10, 15, 0.65);
+  }
+  .jr[data-open] .jr__hint { display: none; }
+  .jr__hint-touch { display: none; }
+  @media (min-width: 768px) { .jr__hint { bottom: 32px; } }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
+    .jr__title { top: 30px; }
+    .jr[data-open] .jr__title { opacity: 0; }
+    .jr__hint { color: rgb(244 239 230 / 0.6); }
+    .jr__hint-touch { display: inline; }
+    .jr__hint-fine { display: none; }
+    .jr__dim { display: none; }
+  }
+
+  body.journal-detail-open [data-hamburger], body.journal-detail-open [data-nav-logo] { opacity: 0; pointer-events: none; }
+  [data-hamburger], [data-nav-logo] { transition: opacity 0.3s; }
+
+  /* ---- field ---- */
+  .jr-field, .jr-lattice { position: fixed; inset: 0; overflow: hidden; user-select: none; -webkit-user-select: none; touch-action: none; }
+  .jr-field { cursor: grab; }
+  .jr-field:active { cursor: grabbing; }
+  .jr[data-open] .jr-field { cursor: default; }
+  .jr-layer { position: absolute; left: 0; top: 0; z-index: 2; transform-origin: 0 0; will-change: transform; }
+  .jr-lattice__layer { position: absolute; inset: 0; }
+
+  .jr-item {
+    position: absolute; display: block; padding: 0; border: 0; background: transparent; cursor: pointer;
+    user-select: none; -webkit-user-select: none; transform-origin: center; -webkit-tap-highlight-color: transparent;
+  }
+  .jr-field .jr-item { cursor: pointer; }
+  .jr-field:active .jr-item { cursor: grabbing; }
+  .jr-item:focus-visible { outline: 2px solid var(--color-lavender); outline-offset: 6px; }
+  .jr-item__tilt {
+    position: relative; width: 100%; height: 100%;
+    transform: perspective(900px) rotateX(var(--jj-rx, 0deg)) rotateY(var(--jj-ry, 0deg)) scale(var(--jj-lift, 1));
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  .jr-item__tilt { display: flex; align-items: center; justify-content: center; }
+  .jr-item__art { position: relative; flex-shrink: 0; }
+  .jr-item__art[data-round] { overflow: hidden; }
+  .jr-item img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; -webkit-user-drag: none; }
+  .jr-item__polaroid { position: relative; width: 100%; height: 100%; border: var(--mat) solid var(--color-bone); background: var(--color-bone); }
+  .jr-item__polaroid img { object-fit: cover; }
+  .jr-grain {
+    pointer-events: none; position: absolute; inset: -8px;
+    background: url('/textures/paper-grain.webp') repeat; background-size: 40%; mix-blend-mode: multiply;
+  }
+  .jr-item__depth { pointer-events: none; position: absolute; inset: -18%; }
+  .jr-item__depth canvas { width: 100%; height: 100%; display: block; opacity: 0; }
+  .jr-item__img--depth { transition: opacity 0.4s ease; }
+  .jr-item[data-depth-ready] .jr-item__img--depth { opacity: 0; }
+  /* Same finish as the Home cards (DS --sheen-sweep: raised-cosine band, no edges). */
+  .jr-sheen, .jr-iris, .jr-ring { pointer-events: none; position: absolute; inset: 0; border-radius: inherit; }
+  /* Not painted at rest (blend modes + masks on ~300 copies cost frames while panning);
+     visibility flips at once on lift and after the fade on leave. */
+  .jr-sheen, .jr-iris { -webkit-mask-size: 100% 100%; mask-size: 100% 100%; visibility: hidden; }
+  .jr-item[data-journal-lifted] :is(.jr-sheen, .jr-iris) { visibility: visible; }
+  .jr-sheen {
+    background: var(--sheen-sweep); background-size: 260% 100%; background-position-x: calc(var(--jj-mxf, 0.5) * 100%);
+    mix-blend-mode: screen; opacity: 0; transition: opacity 0.25s ease, visibility 0s 0.25s;
+  }
+  .jr-iris {
+    background: linear-gradient(115deg, rgba(120, 90, 255, 0.16) 0%, rgba(255, 120, 200, 0) 38%, rgba(255, 180, 90, 0) 62%, rgba(90, 200, 255, 0.16) 100%);
+    mix-blend-mode: color-dodge; opacity: 0; transition: opacity 0.3s ease, visibility 0s 0.3s;
+  }
+  .jr-ring { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0), inset 0 0 0 rgba(255, 255, 255, 0); transition: box-shadow 0.25s ease; }
+  .jr-item[data-journal-lifted] .jr-sheen { opacity: 0.85; transition: opacity 0.25s ease, visibility 0s; }
+  .jr-item[data-journal-lifted] .jr-iris { opacity: 0.7; transition: opacity 0.3s ease, visibility 0s; }
+  .jr-item[data-journal-lifted] .jr-ring { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), inset 0 0 18px rgba(255, 255, 255, 0.18); }
+
+  .jr-captions { pointer-events: none; position: absolute; inset: 0; z-index: 3; opacity: 1; filter: blur(0); }
+  .jr[data-open] .jr-captions { opacity: 0; filter: blur(8px); transition: opacity 0.1s ease-out, filter 0.1s ease-out; }
+  .jr-caption {
+    position: absolute; top: 0; left: 0; opacity: 0; color: var(--color-bone); will-change: transform, opacity;
+    font-size: max(clamp(11px, 0.78vw, 13px), min(calc(min(100vw, 1728px) * 0.0078), 1.248vh, 20px));
+    max-width: max(315px, 28em); line-height: 1.32; text-align: center; white-space: normal; text-wrap: balance;
+  }
+  .jr-caption > span { white-space: nowrap; }
+  .jr-caption i { font-style: normal; opacity: 0; }
+  .jr-caption i.on { opacity: 1; }
+
+  /* ---- shared lock-up (mark × brand) ---- */
+  .jr-lock { display: flex; align-items: center; gap: 14px; }
+  .jr-lock__mark { width: 30px; height: 34px; flex-shrink: 0; color: var(--color-ink-deep); opacity: 0.45; }
+  .jr-lock__x { font-size: 15px; line-height: 1; color: rgb(23 18 32 / 0.45); }
+  .jr-lock__brand {
+    white-space: nowrap; font-family: var(--font-mono); font-size: 13px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.08em; color: rgb(23 18 32 / 0.55);
+  }
+
+  /* ---- desktop detail ---- */
+  .jr-detail { position: fixed; inset: 0; z-index: 95; }
+  .jr-detail[hidden], .jr-sheet[hidden], .jr-field[hidden], .jr-lattice[hidden] { display: none; }
+  .jr-detail__backdrop { position: absolute; inset: 0; cursor: default; background: transparent; border: 0; padding: 0; }
+  .jr-detail__home {
+    position: fixed; left: 24px; top: 20px; z-index: 20; display: block; color: var(--color-bone);
+    visibility: hidden; opacity: 0; pointer-events: none; transition: opacity 0.3s, visibility 0.3s;
+  }
+  .jr-detail__home::after { content: ''; position: absolute; inset: -12px; }
+  .jr-detail__home[data-show] { visibility: visible; opacity: 1; pointer-events: auto; }
+  .jr-detail__home > span { display: block; transition: scale 0.3s ease-out; }
+  @media (prefers-reduced-motion: no-preference) {
+    .jr-detail__home:hover > span { scale: 1.1; }
+    .jr-detail__home:active > span { scale: 1.05; }
+  }
+  .jr-detail__home-mark { display: block; height: 40px; width: auto; }
+  @media (min-width: 768px) {
+    .jr-detail__home { left: calc(var(--page-x) + 48px); top: 28px; }
+    .jr-detail__home-mark { height: 48px; }
+  }
+
+  .jr-card { position: absolute; visibility: hidden; opacity: 0; color: var(--color-ink-deep); touch-action: none; transform-origin: top left; }
+  .jr-card__shape { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.5)); overflow: visible; }
+  .jr-card__logos { position: absolute; left: 37px; top: 22px; display: inline-flex; align-items: center; }
+  .jr-card__body { position: relative; display: flex; flex-direction: column; height: 100%; padding: 84px 36px 33px 34px; }
+  .jr-card__clip { overflow: hidden; }
+  .jr-card__scroll, .jr-card__top, .jr-card__bottom { display: flex; flex-direction: column; }
+  .jr-card__gap { flex-shrink: 0; }
+  .jr-media { position: relative; width: 100%; aspect-ratio: 16 / 9; margin-bottom: 28px; overflow: hidden; border-radius: 10px; background: color-mix(in oklab, var(--color-ink-deep) 10%, transparent); }
+  .jr-media[hidden] { display: none; }
+  .jr-media video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+  .jr-media__still { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 35%; }
+  .jr-card__text { display: flex; flex-direction: column; gap: 16px; }
+  .jr-card__h { margin: 0; font-family: var(--font-body); font-weight: 800; font-size: 30px; line-height: 1.07; letter-spacing: -0.025em; color: var(--color-ink-deep); }
+  @media (min-width: 768px) { .jr-card__h { font-size: 40px; } }
+  .jr-card__p { margin: 0; max-width: 64ch; font-family: var(--font-body); font-size: 15.37px; line-height: 1.4; color: var(--color-ink-deep); }
+  .jr-card__p[hidden] { display: none; }
+  .jr-rows { display: flex; flex-direction: column; }
+  .jr-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 0;
+    border-top: 1px solid color-mix(in oklab, var(--color-ink-deep) 18%, transparent);
+    font-family: var(--font-mono); font-weight: 500; font-size: 14px; text-transform: uppercase; letter-spacing: 0.01em; color: var(--color-purple-ink);
+  }
+  .jr-row > span:last-child { text-align: right; }
+  .jr-rows__end { border-top: 1px solid color-mix(in oklab, var(--color-ink-deep) 18%, transparent); }
+  .jr-card__cta { margin-top: 28px; }
+  .jr-card__cta[hidden], .jr-card__post[hidden], .jr-sheet__cta[hidden], .jr-sheet__post[hidden] { display: none; }
+  .jr-btn { width: 100%; }
+  .jr-card__post, .jr-sheet__post { margin-top: 28px; align-self: flex-start; color: var(--color-purple-ink); transition: opacity 0.3s; }
+  .jr-card__post:hover { opacity: 0.6; }
+
+  .jr-arrows { position: fixed; z-index: 20; display: flex; align-items: center; gap: 12px; translate: -50% 0; visibility: hidden; opacity: 0; }
+  .jr-arrow {
+    display: flex; width: 48px; height: 48px; align-items: center; justify-content: center; border-radius: 999px; border: 0; background: transparent;
+    color: rgb(244 239 230 / 0.7); transition: color 0.2s var(--ease-ui), background-color 0.2s var(--ease-ui);
+  }
+  .jr-arrow:hover { background: rgb(255 255 255 / 0.05); color: var(--color-bone); }
+  .jr-close {
+    position: fixed; right: 8px; top: 8px; z-index: 20; display: flex; width: 44px; height: 44px; align-items: center; justify-content: center;
+    border: 0; background: transparent; font-size: 24px; line-height: 1; color: rgb(244 239 230 / 0.8);
+    visibility: hidden; opacity: 0; transition: color 0.3s;
+  }
+  .jr-close:hover { color: var(--color-bone); }
+  @media (min-width: 768px) { .jr-close { right: calc(var(--page-x) + 38px); top: 18px; } }
+
+  /* ---- phone sheet ---- */
+  .jr-sheet {
+    position: fixed; inset: 0; z-index: 95; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+    background: var(--color-bone); color: var(--color-ink-deep); opacity: 0; transform: translateY(28px);
+    transition: opacity 360ms var(--ease-ui), transform 360ms var(--ease-reveal);
+  }
+  .jr-sheet[data-in] { opacity: 1; transform: none; }
+  .jr-sheet[data-out] { opacity: 0; transform: translateY(28px); transition-duration: 220ms; }
+  .jr-sheet__close {
+    position: fixed; right: 12px; top: 12px; z-index: 20; display: flex; width: 44px; height: 44px; align-items: center; justify-content: center;
+    border: 0; border-radius: 999px; font-size: 20px; line-height: 1; color: var(--color-bone);
+    background: color-mix(in oklab, var(--color-ink) 45%, transparent);
+  }
+  .jr-sheet__inner { margin-inline: auto; max-width: 688px; padding: 20px 24px 96px; }
+  .jr-sheet__media { position: relative; margin-top: 24px; width: 100%; }
+  .jr-sheet__media:empty { display: none; }
+  .jr-sheet__media[data-kind='video'] { aspect-ratio: 16 / 9; max-width: calc(70svh * 16 / 9); overflow: hidden; border-radius: 10px; background: color-mix(in oklab, var(--color-ink-deep) 10%, transparent); }
+  .jr-sheet__media[data-kind='video'] video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+  .jr-sheet__media[data-kind='polaroid'] { overflow: hidden; border-radius: 10px; }
+  .jr-sheet__media img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .jr-sheet__media[data-kind='polaroid'] img { object-fit: cover; }
+  .jr-sheet__text { margin-top: 24px; display: flex; flex-direction: column; gap: 16px; }
+  .jr-sheet__h { margin: 0; font-family: var(--font-body); font-weight: 800; font-size: 28px; line-height: 1.07; letter-spacing: -0.025em; }
+  .jr-sheet__p { margin: 0; font-family: var(--font-body); font-size: 16px; line-height: 1.45; }
+  .jr-sheet__p[hidden] { display: none; }
+  .jr-rows--sheet { margin-top: 40px; }
+  .jr-rows--sheet .jr-row { padding: 14px 0; font-size: 12px; letter-spacing: 0.02em; }
+  .jr-rows--sheet:empty { display: none; }
+  .jr-sheet__cta { margin-top: 28px; }
+  .jr-sheet__post { display: inline-block; padding: 8px 0; }
+
+  /* ---- video loading status (both layouts) ---- */
+  .jr-status { pointer-events: none; position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; }
+  .jr-status > span {
+    display: flex; align-items: center; gap: 12px; border-radius: 999px; padding: 12px 16px; background: var(--color-ink-deep); color: var(--color-bone);
+    font-family: var(--font-mono); font-size: 12px;
+  }
+  .jr-status i { width: 20px; height: 20px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: jr-spin 1s linear infinite; }
+  .jr-retry { border: 0; border-radius: 999px; padding: 12px 20px; background: var(--color-ink-deep); color: var(--color-bone); font-family: var(--font-mono); font-size: 12px; }
+  @keyframes jr-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .jr-status i { animation: none; } }
+</style>

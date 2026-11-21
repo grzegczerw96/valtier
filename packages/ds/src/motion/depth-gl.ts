@@ -297,6 +297,9 @@ export interface DepthSlideOptions {
   depth: string;
   aspect?: number;
   overscan?: number;
+  /** The canvas extends past the image by this fraction on every side (so the
+   *  displaced edges are not clipped); the image keeps its box size. */
+  bleed?: number;
   dispScale?: number;
   reduced?: boolean;
   onReady?: () => void;
@@ -323,7 +326,7 @@ export async function createDepthSlide(canvas: HTMLCanvasElement, o: DepthSlideO
     const a = canvas.width / canvas.height;
     proj = perspective(CAMERA.fov, a);
     const vh = 2 * Math.tan((CAMERA.fov * Math.PI) / 360) * CAMERA.z;
-    scale = Math.max(vh, (vh * a) / aspect) * overscan;
+    scale = (Math.max(vh, (vh * a) / aspect) * overscan) / (1 + 2 * (o.bleed ?? 0));
     lp?.start();
   });
   let ready = false;
