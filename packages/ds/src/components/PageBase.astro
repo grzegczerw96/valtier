@@ -1,19 +1,32 @@
 ---
 /** Per-page fixed backdrop (sits above the global bg-layers): a base colour that
- *  deepens to ink as the footer arrives (--fdp), a multiplied texture that fades
- *  out, and the footer leather that fades in. On-Field uses #2D2D2D + turf grain. */
+ *  deepens to ink as the footer arrives (--fdp), a texture that fades out, and the
+ *  footer leather that fades in. On-Field uses #2D2D2D + multiplied turf grain; light
+ *  pages (Partnerships) use sand + screened pebble (`blend="screen"`), an optional
+ *  soft-light window `wash` (desktop) and a faint diagonal glow on touch phones. */
 import { withBase } from '../lib/base';
-interface Props { base?: string; texture?: 'grass' | 'pebble'; tile?: string }
-const { base = '#2D2D2D', texture = 'grass', tile } = Astro.props;
+interface Props {
+  base?: string;
+  texture?: 'grass' | 'pebble';
+  tile?: string;
+  blend?: 'multiply' | 'screen';
+  /** Public path of a soft-light wash texture (shown from 768px up). */
+  wash?: string;
+  /** Diagonal white glow on coarse-pointer phones (light pages). */
+  phoneGlow?: boolean;
+}
+const { base = '#2D2D2D', texture = 'grass', tile, blend = 'multiply', wash, phoneGlow = false } = Astro.props;
 const url = withBase(texture === 'grass' ? '/textures/grass.webp' : '/textures/pebble.webp');
 const size = tile ?? (texture === 'grass' ? 'var(--grass-tile)' : 'var(--pebble-tile)');
 ---
 <div class="page-base" aria-hidden="true" style={`--page-base:${base}`}></div>
-<div class="page-tone-texture" aria-hidden="true" style={`background-image:url(${url});background-size:${size}`}></div>
+<div class:list={['page-tone-texture', blend === 'screen' && 'page-tone-texture--screen']} aria-hidden="true" style={`background-image:url(${url});background-size:${size}`}></div>
 <div class="page-footer-leather" aria-hidden="true"></div>
+{wash && <div class="page-wash" aria-hidden="true" style={`background-image:url(${withBase(wash)})`}></div>}
+{phoneGlow && <div class="page-phone-glow" aria-hidden="true"></div>}
 
 <style is:global>
-  .page-base, .page-tone-texture, .page-footer-leather { position: fixed; inset: 0; pointer-events: none; }
+  .page-base, .page-tone-texture, .page-footer-leather, .page-wash, .page-phone-glow { position: fixed; inset: 0; pointer-events: none; }
   .page-base {
     z-index: -1;
     background-color: var(--page-base);
@@ -21,12 +34,24 @@ const size = tile ?? (texture === 'grass' ? 'var(--grass-tile)' : 'var(--pebble-
     transition: background-color var(--footer-fade) var(--ease-editorial);
   }
   .page-tone-texture { z-index: 0; mix-blend-mode: multiply; opacity: calc(1 - var(--fdp, 0)); transition: opacity var(--footer-fade) var(--ease-editorial); }
+  .page-tone-texture--screen { mix-blend-mode: screen; background-repeat: repeat; background-position: 0 0; }
   .page-footer-leather {
     z-index: 0; mix-blend-mode: overlay; opacity: var(--fdp, 0); transition: opacity var(--footer-fade) var(--ease-editorial);
     background-size: var(--leather-tile) var(--leather-tile);
   }
   html[data-footer-prepared] .page-footer-leather { background-image: url('/textures/pebble.webp'); }
+  .page-wash {
+    z-index: 0; background-size: cover; background-position: center; background-repeat: no-repeat; mix-blend-mode: soft-light;
+    opacity: calc(0.85 * (1 - var(--fdp, 0))); transition: opacity var(--footer-fade) var(--ease-editorial);
+  }
+  .page-phone-glow {
+    z-index: 0; display: none; opacity: calc(1 - var(--fdp, 0));
+    background: linear-gradient(142deg, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.14) 32%, rgba(255, 255, 255, 0) 58%),
+      linear-gradient(232deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 42%);
+  }
+  @media (max-width: 767px) { .page-wash { display: none; } }
+  @media (max-width: 900px) and (pointer: coarse) { .page-phone-glow { display: block; } }
   @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
-    .page-base, .page-tone-texture, .page-footer-leather { top: -10%; bottom: -10%; }
+    .page-base, .page-tone-texture, .page-footer-leather, .page-phone-glow { top: -10%; bottom: -10%; }
   }
 </style>

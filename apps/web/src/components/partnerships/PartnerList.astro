@@ -1,0 +1,202 @@
+---
+/** The partner index. Each row is a mono uppercase button; on hover (fine pointers)
+ *  it turns into a white chip, the category decodes in, and after 130 ms a strip of
+ *  thumbnails slides in from the right edge. Clicking opens an accordion with the
+ *  description and a gallery; the strip's thumbnails fly into the gallery cells.
+ *  Galleries and strips live in <template>s until first use (see list.ts). */
+import type { Partner, Media } from '../../content/partnerships';
+interface Props { partners: Partner[] }
+const { partners } = Astro.props;
+
+const items = (p: Partner): Media[] => (p.lead ? [p.lead, ...p.gallery] : p.gallery);
+const ratio = (m: Media) => m.width / m.height;
+---
+<div class="pt-list" data-section="pt-list" data-pt-list>
+  <ul class="pt-rows">
+    {partners.map((p, i) => (
+      <li class="pt-row" data-pt-row style={`--i:${i}`}>
+        <div class="pt-rule" aria-hidden="true"></div>
+        <button type="button" class="pt-head" aria-expanded="false" aria-controls={`pt-panel-${p.id}`} data-pt-head>
+          <span class="pt-chip">
+            <span class="pt-plus" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 1v10M1 6h10" /></svg>
+            </span>
+            <span class="pt-name">{p.name}</span>
+            <span class="pt-cat" aria-label={p.category}><span aria-hidden="true" data-pt-cat>{p.category}</span></span>
+          </span>
+        </button>
+        <template data-pt-strip>
+          <span class="pt-strip" aria-hidden="true" data-strip>
+            {items(p).map((m) => (
+              <span class="pt-strip__item" data-strip-item style={`aspect-ratio:${m.width} / ${m.height}`}>
+                <img src={m.thumb} alt="" width={Math.round(240 * ratio(m))} height="240" decoding="async" draggable="false" />
+              </span>
+            ))}
+          </span>
+        </template>
+        <div class="pt-panel" id={`pt-panel-${p.id}`} aria-hidden="true" inert data-pt-panel>
+          <div class="pt-panel__clip">
+            <div class="pt-panel__inner">
+              <div class="pt-copy"><p>{p.description}</p></div>
+              <div class="pt-gal-slot" data-pt-gal-slot></div>
+              <template data-pt-gal>
+                <div class="pt-gal" role="region" aria-label={`${p.name} gallery`}>
+                  <div class="pt-gal__track" data-pt-track tabindex="-1" aria-label={`${p.name} media`}>
+                    {items(p).map((m, k) => (
+                      <div
+                        class:list={['pt-cell', m.kind === 'video' && 'pt-cell--video', ratio(m) >= 1 && 'pt-cell--wide']}
+                        data-gal-cell={k}
+                        style={`--ar:${m.width} / ${m.height}`}
+                      >
+                        {m.kind === 'image' ? (
+                          <img src={m.src} alt={m.alt} width={m.width} height={m.height} loading={k < 6 ? 'eager' : 'lazy'} decoding="async" draggable="false" />
+                        ) : (
+                          <>
+                            <img src={m.poster} alt="" width={m.width} height={m.height} loading={k < 6 ? 'eager' : 'lazy'} decoding="async" draggable="false" />
+                            <video data-src={m.src} muted loop playsinline preload="none" disableremoteplayback aria-label={m.alt}></video>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {items(p).length > 1 && items(p).length <= 10 && (
+                    <div class="pt-dots" data-pt-dots>
+                      {items(p).map((_, k) => (
+                        <button type="button" class="pt-dot" aria-label={`Show item ${k + 1}`} aria-current={k === 0 ? 'true' : undefined} data-pt-go={k}><span></span></button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </li>
+    ))}
+    <li aria-hidden="true"><div class="pt-rule"></div></li>
+  </ul>
+</div>
+
+<script>
+  window.vDefer(async () => {
+    const { initPartnerList } = await import('./list');
+    await window.vIdle();
+    document.querySelectorAll<HTMLElement>('[data-pt-list]').forEach(initPartnerList);
+  });
+</script>
+
+<style is:global>
+  .pt-list { position: relative; width: 100%; margin-top: clamp(10px, calc(1.4 * var(--vu)), 30px); }
+  .pt-rows { position: relative; z-index: 1; width: 100%; margin: 0; padding: 0; list-style: none; }
+  .pt-row { position: relative; }
+  .pt-rule { margin-inline: var(--pt-gutter); height: 1px; background-color: rgba(26, 14, 48, 0.14); }
+
+  /* Rows rise in after a page transition (hard loads open on the final state). */
+  html[data-arrival='transition']:not([data-veil-lifted]) .pt-row { opacity: 0; }
+  .pt-list[data-intro] .pt-row { animation: pt-row-in 0.7s var(--ease-reveal) both; animation-delay: calc(var(--i) * 0.09s); }
+  @keyframes pt-row-in { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+
+  .pt-head {
+    position: relative; display: block; width: 100%; padding: 0 var(--pt-gutter); text-align: left;
+    background: none; border: 0; color: inherit; cursor: pointer; transition: opacity 200ms;
+  }
+  @media (pointer: coarse) { .pt-head:active { opacity: 0.6; } }
+  .pt-row.is-strip .pt-head { z-index: 50; }
+  .pt-chip {
+    display: flex; align-items: center; gap: 24px;
+    font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em;
+    font-size: clamp(13px, calc(1.05 * var(--vu)), 27px); line-height: 1.5;
+    padding-block: clamp(0.85rem, var(--vu), 1.5rem); padding-inline: 0;
+    color: var(--color-purple-ink); background-color: transparent;
+    transition: background-color 300ms ease-out, padding 300ms ease-out, color 300ms ease-out;
+  }
+  .pt-row.is-chip .pt-chip { padding-inline: 1rem; background-color: #fff; }
+  .pt-plus { display: none; flex-shrink: 0; color: rgba(26, 14, 48, 0.42); transition: transform 300ms var(--ease-ui); }
+  .pt-row.is-open .pt-plus { transform: rotate(45deg); }
+  .pt-name { text-align: left; }
+  .pt-cat {
+    white-space: nowrap; font-size: max(11px, 0.8em); color: var(--color-taupe-deep);
+    opacity: 0; transition: opacity 300ms;
+  }
+  .pt-row.is-chip .pt-cat, .pt-row.is-open .pt-cat { opacity: 0.75; }
+  @media (hover: none) { .pt-cat { opacity: 0.6; } }
+  @media (max-width: 767px) {
+    .pt-plus { display: block; }
+    .pt-cat { margin-left: auto; text-align: right; }
+  }
+  @media (max-width: 900px) and (pointer: coarse) {
+    .pt-chip { gap: 16px; font-size: 16px; }
+    .pt-cat { font-size: 12px; }
+  }
+
+  /* Hover strip */
+  .pt-strip {
+    pointer-events: none; position: absolute; top: 50%; z-index: 60; display: none; width: max-content;
+    align-items: center; gap: 8px; transform: translateY(-50%);
+  }
+  @media (min-width: 768px) { .pt-strip { display: flex; } }
+  .pt-strip__item {
+    position: relative; display: block; flex-shrink: 0; overflow: hidden; border-radius: 3px;
+    height: clamp(64px, calc(7 * var(--vu)), 132px); box-shadow: 0 10px 26px rgba(26, 14, 48, 0.3);
+    background: rgba(26, 14, 48, 0.08);
+  }
+  .pt-strip__item img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  @keyframes pt-strip-in { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+
+  /* Accordion */
+  .pt-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 520ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .pt-row.is-open .pt-panel { grid-template-rows: 1fr; }
+  .pt-panel__clip { min-height: 0; overflow: hidden; }
+  .pt-panel__inner {
+    padding: 4px 0 40px; opacity: 0; transform: translateY(-14px);
+    transition: opacity 500ms cubic-bezier(0.16, 1, 0.3, 1), transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @media (min-width: 768px) { .pt-panel__inner { padding-bottom: min(64px, calc(4.45 * var(--vu))); } }
+  .pt-row.is-open .pt-panel__inner { opacity: 1; transform: none; }
+  .pt-copy { padding-inline: var(--pt-gutter); }
+  .pt-copy p {
+    margin: 0; max-width: clamp(640px, calc(36 * var(--vu)), 900px); font-size: 15px; line-height: 1.5; color: var(--color-purple-ink);
+  }
+  @media (min-width: 768px) { .pt-copy p { font-size: clamp(19px, var(--vu), 25px); } }
+  .pt-gal-slot:not(:empty) { margin-top: 32px; }
+  @media (min-width: 768px) { .pt-gal-slot:not(:empty) { margin-top: min(44px, calc(3.06 * var(--vu))); } }
+
+  /* Gallery: desktop drag scroller */
+  .pt-gal { position: relative; width: 100%; color: var(--color-purple-ink); }
+  .pt-gal__track {
+    --cell-h: clamp(165px, 46vw, 240px);
+    display: flex; align-items: stretch; gap: 12px; overflow-x: auto; overscroll-behavior-x: contain;
+    padding-inline: var(--pt-gutter); cursor: grab; user-select: none; scrollbar-width: none; outline: none;
+  }
+  .pt-gal__track::-webkit-scrollbar { display: none; }
+  .pt-gal__track:active { cursor: grabbing; }
+  @media (min-width: 768px) { .pt-gal__track { --cell-h: clamp(240px, calc(30 * var(--vu)), 518px); gap: 16px; } }
+  .pt-cell {
+    position: relative; flex-shrink: 0; overflow: hidden; height: var(--cell-h); aspect-ratio: var(--ar);
+    background: rgba(26, 14, 48, 0.05);
+  }
+  .pt-cell img, .pt-cell video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+  .pt-cell video { opacity: 0; transition: opacity 250ms ease; }
+  .pt-cell video[data-playing] { opacity: 1; }
+  .pt-dots { display: none; }
+  @keyframes pt-cell-drop { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+  @keyframes pt-cell-out { from { opacity: 1; } to { opacity: 0; } }
+
+  /* Gallery: phone snap rail (82 phone units, 4:5, landscape media contained) */
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) {
+    .pt-gal__track {
+      gap: 12px; padding-inline: 24px; scroll-padding-inline: 24px; scroll-snap-type: x mandatory; cursor: auto; overflow-y: hidden;
+    }
+    .pt-cell {
+      height: auto; width: calc(82 * var(--pu)); aspect-ratio: 4 / 5; scroll-snap-align: start; background: var(--color-ink-deep);
+      transition: opacity 500ms var(--ease-editorial);
+    }
+    .pt-cell:not([aria-current]) { opacity: 0.55; }
+    .pt-cell--wide img, .pt-cell--wide video { object-fit: contain; }
+    .pt-dots { margin: 4px auto 0; display: flex; width: fit-content; max-width: 100%; align-items: center; justify-content: center; padding-inline: 12px; }
+    .pt-dot { display: flex; height: 44px; width: 24px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 9999px; background: transparent; border: 0; padding: 0; color: inherit; }
+    .pt-dot span { display: block; height: 6px; width: 6px; border-radius: 9999px; background: currentColor; opacity: 0.3; transition: width 300ms, opacity 300ms; }
+    .pt-dot[aria-current='true'] span { width: 18px; opacity: 0.9; }
+  }
+  @media (prefers-reduced-motion: reduce) { .pt-list[data-intro] .pt-row { animation: none; } }
+</style>

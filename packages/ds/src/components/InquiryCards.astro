@@ -1,0 +1,67 @@
+---
+/** Contact cards (mailto). Hovering or focusing a card dims the copy of the others to
+ *  .35 and slides its arrow in (450 / 350 ms, --ease-ui); touch screens show every
+ *  arrow. `tone` matches the section: light cards on sand, smoke cards on dark pages.
+ *  Sizes follow `--fvw` (the page unit capped at 17.28px) when the parent sets it. */
+export interface InquiryCategory { label: string; name: string; body: string; email: string; subject?: string }
+interface Props { categories: InquiryCategory[]; tone?: 'light' | 'dark'; class?: string }
+const { categories, tone = 'dark', class: cls } = Astro.props;
+const href = (c: InquiryCategory) => `mailto:${c.email}${c.subject ? `?subject=${encodeURIComponent(c.subject)}` : ''}`;
+const at = (e: string) => (e.includes('@') ? [e.slice(0, e.indexOf('@') + 1), e.slice(e.indexOf('@') + 1)] : [e, '']);
+---
+<div class:list={['iq', `iq--${tone}`, cls]}>
+  {categories.map((c) => (
+    <a class="iq__card" href={href(c)}>
+      <div class="iq__top iq__dim">
+        <span class="label-sm iq__label">{c.label}</span>
+        <h2 class="heading iq__name">{c.name}</h2>
+        <span class="iq__email">{at(c.email)[0]}<wbr />{at(c.email)[1]}</span>
+      </div>
+      <div class="iq__bottom">
+        <p class="iq__body iq__dim">{c.body}</p>
+        <span class="iq__arrow" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M6 16L16 6M16 6H7.5M16 6V14.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </span>
+      </div>
+    </a>
+  ))}
+</div>
+
+<style is:global>
+  .iq { display: grid; width: 100%; grid-template-columns: 1fr; gap: 20px; }
+  @media (min-width: 768px) { .iq { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; } }
+  .iq--dark {
+    --iq-card: var(--color-smoke); --iq-edge: color-mix(in oklab, var(--color-bone) 10%, transparent); --iq-shadow: 0 24px 60px -34px rgba(0, 0, 0, 0.7);
+    --iq-label: var(--color-taupe); --iq-name: var(--color-bone); --iq-email: color-mix(in oklab, var(--color-bone) 60%, transparent);
+    --iq-body: color-mix(in oklab, var(--color-bone) 82%, transparent); --iq-arrow: var(--color-bone);
+  }
+  .iq--light {
+    --iq-card: var(--color-bone); --iq-edge: color-mix(in oklab, var(--color-ink-deep) 8%, transparent); --iq-shadow: 0 24px 60px -38px rgba(26, 14, 48, 0.45);
+    --iq-label: var(--color-taupe-deep); --iq-name: var(--color-ink-deep); --iq-email: color-mix(in oklab, var(--color-ink-deep) 62%, transparent);
+    --iq-body: color-mix(in oklab, var(--color-ink-deep) 84%, transparent); --iq-arrow: var(--color-ink-deep);
+  }
+  .iq__card {
+    position: relative; display: flex; min-height: 240px; flex-direction: column; justify-content: space-between; min-width: 0;
+    border-radius: 14px; padding: 24px; text-decoration: none;
+    background-color: var(--iq-card); border: 1px solid var(--iq-edge); box-shadow: var(--iq-shadow);
+  }
+  @media (min-width: 768px) { .iq__card { min-height: clamp(280px, calc(var(--fvw, 1vw) * 24), 415px); } }
+  .iq__top { display: flex; flex-direction: column; gap: 20px; }
+  .iq__label { color: var(--iq-label); }
+  .iq__name { margin: 0; color: var(--iq-name); font-size: clamp(28px, calc(var(--fvw, 1vw) * 2.6), 45px); line-height: 1; }
+  .iq__email { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--iq-email); overflow-wrap: anywhere; }
+  .iq__bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding-top: 24px; }
+  .iq__body { margin: 0; max-width: 34ch; font-size: clamp(15px, calc(var(--fvw, 1vw) * 1.05), 18px); line-height: 1.5; color: var(--iq-body); }
+  .iq__dim { transition: opacity 450ms var(--ease-ui); }
+  .iq__arrow {
+    flex-shrink: 0; display: flex; color: var(--iq-arrow); opacity: 0; transform: translate(-4px, 4px);
+    transition: opacity 350ms var(--ease-ui), transform 350ms var(--ease-ui);
+  }
+  .iq__card:focus-visible .iq__arrow { opacity: 1; transform: none; }
+  .iq:has(.iq__card:focus-visible) .iq__card:not(:focus-visible) .iq__dim { opacity: 0.35; }
+  @media (hover: hover) {
+    .iq__card:hover .iq__arrow { opacity: 1; transform: none; }
+    .iq:has(.iq__card:hover) .iq__card:not(:hover) .iq__dim { opacity: 0.35; }
+  }
+  @media (hover: none) { .iq__arrow { opacity: 1; transform: none; } }
+</style>
