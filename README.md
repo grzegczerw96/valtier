@@ -21,7 +21,7 @@ apps/web/           the site
   src/content/      on-field.ts, home.ts, off-field.ts, journal.ts — every number and string on each page
   src/components/   on-field/, home/, off-field/, journal/ — page sections
   src/pages/        index, on-field, off-field, journal, design-system (living style guide), placeholders for the other nav items
-  scripts/          gen-textures.py (procedural pebble/grass/light), gen-placeholders.py, serve.mjs
+  scripts/          gen-*.py (procedural textures, field, art), process-*.py (stock media pipeline), serve.mjs
 ```
 
 ## Run
@@ -81,4 +81,4 @@ Chosen by pixel-overlap matching against the reference faces (IoU, cap-height no
 
 Photos and the hero clip come from Pexels (sources and the rebuild script are listed in `apps/web/MEDIA.md`).
 The hero clip is fetched on the visitor's first interaction; its first frame is the poster, so the swap is
-seamless and no video bytes compete with first paint. `scripts/gen-placeholders.py` can regenerate stand-ins.
+seamless and no video bytes compete with first paint.
