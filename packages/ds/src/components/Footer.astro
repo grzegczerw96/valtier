@@ -145,23 +145,13 @@ const aspect = variant.image.width / variant.image.height;
     --footer-comp-h: max(560px, min(max(100svh, var(--min-h)), calc(var(--page-w) * 0.625)));
     --footer-desktop-height: var(--footer-comp-h);
   }
-  @media (max-width: 767px) { :root { --footer-desktop-height: max(680px, 100svh); } }
-  /* Touch tablets / phones in landscape (768–900px wide): size from the short height. */
-  @media (min-width: 768px) and (max-width: 900px) and (pointer: coarse) {
-    :root { --footer-desktop-height: 100svh; }
-    .footer { --footer-comp-h: var(--footer-desktop-height); --footer-cutout-h: min(var(--footer-desktop-height), 62.5vw); }
-  }
-  @media (min-width: 768px) and (max-width: 900px) and (pointer: coarse) and (orientation: landscape) {
-    .footer { --cu: calc((100svh - 107px) / 800); }
-    .footer__center { --footer-headline-size: calc((100svh - 107px) * 0.19); }
-    .footer__invite { padding-bottom: 107px; }
-  }
+  /* Below 768px the footer is as tall as its content (reference: `h-auto`, 547px at 390×844
+     with a three-line headline), so no height variable applies there. */
   .footer {
     position: relative; z-index: var(--z-footer); display: flex; flex-direction: column; width: 100%; overflow: hidden;
     color: var(--color-bone); --footer-cutout-h: var(--footer-comp-h);
-    min-height: var(--footer-desktop-height);
   }
-  @media (min-width: 768px) { .footer { display: block; height: var(--footer-desktop-height); } }
+  @media (min-width: 768px) { .footer { display: block; min-height: var(--footer-desktop-height); height: var(--footer-desktop-height); } }
   @media (max-width: 900px) and (pointer: coarse) { .footer { --mark-scale: 0.55; } }
 
   .footer__partners { position: absolute; inset-inline: 0; bottom: 1.25rem; z-index: 3; display: flex; height: 56px; align-items: center; }
@@ -186,6 +176,17 @@ const aspect = variant.image.width / variant.image.height;
   .footer__invite[data-footer-invitation='true'] { opacity: 1; }
   @media (min-width: 768px) { .footer__invite { width: auto; align-items: center; text-align: center; padding-bottom: min(132px, calc(132 * var(--cu))); } }
   @media (min-width: 768px) and (pointer: fine) and (not (min-aspect-ratio: 8/5)), (min-width: 901px) and (not (min-aspect-ratio: 8/5)) { .footer__invite { padding-bottom: 0; } }
+  /* Touch tablets / phones in landscape (768–900px wide): size from the short height.
+     These must come after the base .footer / __center / __invite rules above, which they override. */
+  @media (min-width: 768px) and (max-width: 900px) and (pointer: coarse) {
+    :root { --footer-desktop-height: 100svh; }
+    .footer { --footer-comp-h: var(--footer-desktop-height); --footer-cutout-h: min(var(--footer-desktop-height), 62.5vw); }
+  }
+  @media (min-width: 768px) and (max-width: 900px) and (pointer: coarse) and (orientation: landscape) {
+    .footer { --cu: calc((100svh - 107px) / 800); }
+    .footer__center { --footer-headline-size: calc((100svh - 107px) * 0.19); }
+    .footer__invite { padding-bottom: 107px; }
+  }
   .footer__halo {
     position: absolute; inset: -3rem -5rem; z-index: -1; pointer-events: none;
     background: radial-gradient(ellipse 58% 56% at 38% 58%, rgba(23, 18, 32, 0.9) 0%, rgba(23, 18, 32, 0.62) 36%, rgba(23, 18, 32, 0.22) 60%, rgba(23, 18, 32, 0) 78%);
