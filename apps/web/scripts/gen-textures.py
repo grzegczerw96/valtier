@@ -3,7 +3,7 @@
   python -I apps/web/scripts/gen-textures.py
 
 Writes into apps/web/public/textures/:
-  pebble.webp  480px tile  - football-leather pebble grain (Voronoi domes)
+  pebble.webp  480px tile  - football-leather pebble grain (dark rounded pebbles, light seams)
   grass.webp   512px tile  - fine turf grain, shown at 170px
   light.webp   1440x810    - soft diagonal light shaft (alpha), used with soft-light blend
 """
@@ -16,40 +16,68 @@ os.makedirs(OUT, exist_ok=True)
 rng = np.random.default_rng(18)
 
 
-def pebble(size=480, cells=70):
-    """Seamless Voronoi pebble grain: one jittered seed per grid cell, wrap-around neighbours."""
+def pebble(size=480, cells=72):
+    """Seamless football-leather pebble grain, matched to the reference's tile statistics
+    (measured through its screen blend on sand): dark, rounded pebbles separated by thin
+    light seams, ~8px apart, mean ~73/255 with a long bright tail (skew ~1.1). Pebbles are
+    rounded with the Apollonius trick: the seam is where f1/f2 (nearest / second-nearest
+    seed distance) approaches 1, whose level sets are circles, so corners fill in."""
+    rng.uniform(size=(70, 70, 2)); rng.normal(size=(8, 8)); rng.normal(size=(480, 480))  # keep grass/light draws as before
+    r = np.random.default_rng(1818)
     g = size / cells
-    jitter = rng.uniform(0.15, 0.85, (cells, cells, 2))
+    jitter = r.uniform(0.12, 0.88, (cells, cells, 2))
+    tone = r.uniform(0.94, 1.06, (cells, cells))            # per-pebble variation
     yy, xx = np.mgrid[0:size, 0:size].astype(np.float32) + 0.5
-    gx, gy = (xx // g).astype(int), (yy // g).astype(int)
+    # periodic domain warp (integer periods keep the tile seamless): rows of pebbles flow and curve
+    tau = 2 * np.pi / size
+    wx = xx + 2.2 * np.sin(tau * 2 * yy + 1.3) + 1.0 * np.sin(tau * 5 * (xx + yy) + 0.4)
+    wy = yy + 2.2 * np.sin(tau * 3 * xx + 0.2) + 1.0 * np.sin(tau * 4 * (xx - yy) + 2.1)
+    gx, gy = np.floor(wx / g).astype(int), np.floor(wy / g).astype(int)
+    # anisotropic metric: pebbles ~14% longer along the 35deg diagonal, like the reference's flow
+    ca, sa, k = np.cos(0.61), np.sin(0.61), 1.14
     f1 = np.full((size, size), 1e9, np.float32)
     f2 = np.full((size, size), 1e9, np.float32)
-    for dy in (-1, 0, 1):
-        for dx in (-1, 0, 1):
+    own = np.ones((size, size), np.float32)
+    for dy in (-2, -1, 0, 1, 2):
+        for dx in (-2, -1, 0, 1, 2):
             cx, cy = gx + dx, gy + dy
             j = jitter[cy % cells, cx % cells]
-            px = (cx + j[..., 0]) * g
-            py = (cy + j[..., 1]) * g
-            d = np.hypot(xx - px, yy - py)
-            f2 = np.where(d < f1, f1, np.minimum(f2, d))
+            ex, ey = wx - (cx + j[..., 0]) * g, wy - (cy + j[..., 1]) * g
+            u, v_ = ex * ca + ey * sa, -ex * sa + ey * ca
+            d = np.hypot(u / k, v_)
+            closer = d < f1
+            f2 = np.where(closer, f1, np.minimum(f2, d))
+            own = np.where(closer, tone[cy % cells, cx % cells], own)
             f1 = np.minimum(f1, d)
-    edge = np.clip((f2 - f1) / (g * 0.85), 0, 1)          # 0 in grooves, 1 at cell centre
-    dome = np.sqrt(edge)                                   # rounded pebble height
-    # light from the top-left: emboss via gradient of the height map (wraps -> seamless)
-    hy = (np.roll(dome, -1, 0) - np.roll(dome, 1, 0)) * 0.5
-    hx = (np.roll(dome, -1, 1) - np.roll(dome, 1, 1)) * 0.5
-    light = np.clip(0.5 - (hx + hy) * 5.0, 0, 1)
-    v = 0.18 + 0.62 * dome * (0.45 + 0.55 * light)
-    v *= np.clip(edge / 0.09, 0.12, 1)                           # crisp dark grooves
-    # low-frequency mottling so the tile does not read as a grid
-    lf = rng.normal(0, 1, (8, 8))
-    lf = np.array(Image.fromarray(((lf - lf.min()) / np.ptp(lf) * 255).astype(np.uint8)).resize((size, size), Image.BICUBIC)) / 255.0
-    v *= 0.82 + 0.3 * lf
-    v += rng.normal(0, 0.035, v.shape)
-    img = np.clip(v, 0, 1)
-    # match the reference histogram roughly: mean ~72/255, high contrast
-    img = (img - img.mean()) / (img.std() + 1e-6) * 64 + 72
-    Image.fromarray(np.clip(img, 0, 255).astype(np.uint8), "L").save(os.path.join(OUT, "pebble.webp"), quality=58, method=6)
+    ratio = f1 / f2
+    e = 1 - ratio                                            # 0 on the seam, rising toward the seed
+    t = np.clip(e / 0.3, 0, 1)
+    h = t * t * (3 - 2 * t)                                  # flat-topped pebble with a rounded shoulder
+    seam = 1 - h
+    # shade the shoulders: light from the upper-left catches each pebble's upper-left rim
+    hy = (np.roll(h, -1, 0) - np.roll(h, 1, 0)) * 0.5
+    hx = (np.roll(h, -1, 1) - np.roll(h, 1, 1)) * 0.5
+    nx, ny, nz = -hx * 2.4, -hy * 2.4, np.ones_like(h)
+    nl = (nx * -0.62 + ny * -0.62 + nz * 0.48) / np.sqrt(nx * nx + ny * ny + 1)
+    flat = 0.48
+    lit = np.clip((nl - flat) / (1 - flat), 0, 1) ** 1.2      # rim highlight (0 on flat tops)
+    def smooth_noise(n):
+        a = r.normal(0, 1, (n, n))
+        a = np.tile(a, (3, 3))                                   # wrap so the bicubic resize stays seamless
+        big = np.array(Image.fromarray(((a - a.min()) / np.ptp(a) * 255).astype(np.uint8)).resize((size * 3, size * 3), Image.BICUBIC)) / 255.0
+        return big[size:2 * size, size:2 * size]
+    lf, mf = smooth_noise(6), smooth_noise(24)                   # broad mottling, seam-to-seam variation
+    v = 0.07 * own + (0.35 * lit + 0.7 * seam ** 1.8) * (0.8 + 0.2 * lf + 0.08 * mf * own) + r.normal(0, 0.018, (size, size))
+    # soften the seams a touch (the reference reads soft, not etched); np.roll keeps the blur seamless
+    sig = 0.3
+    kern = np.exp(-0.5 * (np.arange(-2, 3) / sig) ** 2); kern /= kern.sum()
+    for ax in (0, 1):
+        v = sum(w * np.roll(v, o, ax) for o, w in zip(range(-2, 3), kern))
+    # map to the reference's measured quantiles (1/10/25/50/75/90/99th: 11/18/29/52/105/162/232)
+    q = np.percentile(v, [0, 1, 10, 25, 50, 75, 90, 99, 100])
+    target = [3, 11, 18, 29, 52, 105, 162, 232, 252]
+    img = np.interp(v, q, target)
+    Image.fromarray(np.clip(img, 0, 255).astype(np.uint8), "L").save(os.path.join(OUT, "pebble.webp"), quality=62, method=6)
 
 
 def grass(size=512, blades=26000, display=170, target_std=13.0):

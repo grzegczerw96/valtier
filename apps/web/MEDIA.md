@@ -56,6 +56,7 @@ Photo URLs: `https://www.pexels.com/photo/<id>/` · video: `https://www.pexels.c
 | home/partner-cleat.webp (+ -depth) | `scripts/gen-partner-art.py <pexels-dir>` | full pair of cleats from Pexels 27299906: BiRefNet cut-out clipped below the collar (ball removed), maker marks diffused away, gilded, on a 16:9 canvas for the depth slide (without the dir it falls back to cleats/cleat-gold, which is cropped at the toe) |
 | home/partner-forge.webp | `scripts/gen-partner-art.py` | procedural FORGE packaging (photos r10, career, reel-02) |
 | ../textures/light-wash.webp, light-spot.webp, paper-grain.webp | `scripts/gen-lights.py` | soft-light window washes, instant-photo paper grain |
+| ../textures/pebble.webp | `scripts/gen-textures.py pebble` | football-leather grain (480px tile): dark rounded pebbles with thin light seams, quantile-matched to the reference's tile statistics; screened on sand (Partnerships), multiplied on dark pages, overlay in the footer |
 | ../svg/word-nico.svg, word-valtier.svg, wordmark.svg | `scripts/gen-wordmarks.py` | outlined from Audiowide / Saira (OFL) |
 | ../svg/quotes.svg | hand-drawn | quote marks |
 
@@ -111,6 +112,6 @@ builds everything under `public/media/partners/` from media listed above plus th
 | partners/*-key, -camp, -sideline, -tailgate, -session, -field.webp | records, reels, off/appear, off/fashion, influence-field | duotoned campaign posters with the partner's typographic wordmark |
 | partners/northline-key, -table, forge-shelf, volta-frames, volta-portrait, halo-studio, arena-card.webp | home/partner-*, cleats, off/pieces, journal/arena-99 | pack shots on a lit sweep / flat lay |
 | partners/t/*.webp | every still / poster in `content/partnerships.ts` | 240 px-tall hover-strip thumbnails (`thumbs`) |
-| ../textures/light-window.webp | procedural (`light`) | soft-light window wash over the sand page |
+| ../textures/light-window.webp, light-tone.webp | procedural (`light`) | soft-light window lights as soft elliptical pools, fitted to the reference's lighting layout: `light-window` is the page wash (.85, under the content; centre darker than the bottom), `light-tone` the DS tone light (BgLayers `.tone-light`, .45 over everything while the body theme is `tone-light`) |
 
 `hero.mp4` is not used here: the socks in it carry a real maker mark.
