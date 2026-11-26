@@ -81,6 +81,55 @@ def clean_helmet(img):
     return out.filter(ImageFilter.SMOOTH) if False else out
 
 
+def _grain_inpaint(a, mask, radius=4, seed=18):
+    """Inpaints the RGB of `a` (uint8 RGBA array) under `mask`, then re-adds film grain
+    measured around the hole so the patch doesn't read as a smooth smear."""
+    import cv2
+    mask8 = mask.astype(np.uint8) * 255
+    rgb = cv2.inpaint(np.ascontiguousarray(a[..., :3]), mask8, radius, cv2.INPAINT_TELEA).astype(np.float32)
+    ring = (cv2.dilate(mask8, np.ones((9, 9), np.uint8)) > 0) & ~mask & (a[..., 3] > 200)
+    lum = a[..., :3].astype(np.float32).mean(-1)
+    hp = lum - cv2.GaussianBlur(lum, (0, 0), 1.6)
+    soft = cv2.GaussianBlur(lum, (0, 0), 3)
+    edge = np.hypot(cv2.Sobel(soft, cv2.CV_32F, 1, 0), cv2.Sobel(soft, cv2.CV_32F, 0, 1))
+    flat = ring & (edge < 40)  # grain only, not the edges of nearby parts
+    sigma = float(hp[flat].std()) if flat.any() else 0.0
+    noise = np.random.default_rng(seed).normal(0, sigma, mask.shape).astype(np.float32)
+    noise = noise - cv2.GaussianBlur(noise, (0, 0), 1.6) * 0.3
+    rgb[mask] += noise[mask][:, None]
+    out = a.copy()
+    out[mask, :3] = np.clip(rgb[mask], 0, 255).astype(np.uint8)
+    return out
+
+
+def clean_footer_player(img):
+    """Paints out the helmet maker's marks on the footer cut-out: the light "VICIS"
+    lettering on the dark rear bumper and the small square badge on the shell beside
+    it (coords on the 1200x1200 footer canvas; the jersey "7" is just a number)."""
+    import cv2
+    a = np.array(img.convert("RGBA"))
+    lum = a[..., :3].astype(np.int16).mean(-1)
+    bg = cv2.medianBlur(lum.astype(np.uint8), 15).astype(np.int16)
+    yy, xx = np.mgrid[: a.shape[0], : a.shape[1]]
+    # Lettering: anything clearly lighter than the dark bumper band around it.
+    word = (xx >= 374) & (xx <= 444) & (yy >= 139) & (yy <= 160)
+    letters = word & (lum > np.minimum(bg, 70) + 22)
+    # Badge: darker strokes on the light shell, left of the strap (strap edge ~x = 466 + .4 (y - 112)).
+    badge = (xx >= 448) & (yy >= 128) & (yy <= 161) & (xx <= 463 + 0.4 * (yy - 112))
+    strokes = badge & (lum < bg - 18) & (bg > 95)
+    m = (letters | strokes).astype(np.uint8) * 255
+    m = cv2.dilate(m, np.ones((3, 3), np.uint8), iterations=2) > 0
+    m &= (word | badge) & (a[..., 3] > 0)
+    return Image.fromarray(_grain_inpaint(a, m), "RGBA")
+
+
+def footer_clean():
+    """Re-applies clean_footer_player to the published footer-player.webp (no source
+    photo needed): python apps/web/scripts/process-media.py - footer_clean"""
+    path = os.path.join(OUT, "footer-player.webp")
+    save(clean_footer_player(Image.open(path)), "footer-player.webp", 78)
+
+
 def drop_tee(img):
     """Removes the bright orange kicking tee under the ball and re-trims."""
     arr = np.array(img).astype(np.float32) / 255.0
@@ -152,7 +201,7 @@ def cutouts():
     fp.thumbnail((640, 1200), Image.LANCZOS)
     canvas = Image.new("RGBA", (1200, 1200), (0, 0, 0, 0))
     canvas.paste(fp, (230, 1200 - fp.size[1]), fp)
-    save(canvas, "footer-player.webp", 78)
+    save(clean_footer_player(canvas), "footer-player.webp", 78)
     ball = cutout(Image.open(p(26707860)).convert("RGB"), crop=(0.05, 0.25, 0.95, 0.72))
     save(fit_canvas(drop_tee(ball), 600, 377, 0.02), "football.webp", 80)
     save(clean_helmet(fit_canvas(cutout(Image.open(p(13141533)).convert("RGB"), crop=(0.25, 0.25, 1.0, 0.8)), 1079, 1071, 0.03)), "gloves.webp", 78)

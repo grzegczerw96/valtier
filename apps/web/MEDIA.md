@@ -16,13 +16,17 @@ H.264 MP4 (+ optional WebM) for video. "Cut-out" = transparent background (WebP 
 | influence-player.webp | 660×660 | cut-out | Player celebrating |
 | cleats/c01–c10.webp, cleat-gold.webp | 528×472 | cut-out | Cleats marquee, footer trophy |
 | reels/reel-01–09.webp | 438×856 | photo (9:16) | Reel thumbnails (add `video` in content to play clips) |
-| footer-player.webp | 900×1200 | cut-out | Footer portrait |
+| footer-player.webp | 1200×1200 | cut-out | Footer portrait (player in the left half, slid right by the footer) |
 | crest.svg | vector | logo | Team crest next to "18" |
 
 ## Current sources (Pexels licence — free use, modification allowed, no attribution required)
 
 Rebuild everything with `python apps/web/scripts/process-media.py <dir>` where `<dir>/photos/<id>.jpg`
 and `<dir>/video/<id>.mp4` are the originals below (cut-outs use rembg 2.0.50, model isnet-general-use).
+Brand marks are painted out in the script (`clean_helmet`; `clean_footer_player` inpaints with OpenCV,
+installed with rembg, and re-adds the photo's grain). To re-apply the footer clean-up to the published file without the source photo:
+`python apps/web/scripts/process-media.py - footer_clean`; then rebuild `journal/back-sticker.webp`, which is
+cut from it (`gen-journal.py`, see Journal below).
 
 | Slot | Pexels id(s) |
 |---|---|
@@ -32,7 +36,7 @@ and `<dir>/video/<id>.mp4` are the originals below (cut-outs use rembg 2.0.50, m
 | reels 01–09 | 31853532, 34722017, 13141528, 32116679, 31853539, 37234656, 10799811, 13141533, 26707860 |
 | influence-field.webp | 36573287 (darkened) |
 | influence-player.webp | 159515 (cut-out) |
-| footer-player.webp | 39170961 (cut-out) |
+| footer-player.webp | 39170961 (cut-out; helmet maker's "VICIS" lettering and shell badge painted out by `clean_footer_player`) |
 | football.webp | 26707860 (cut-out, tee removed) |
 | gloves.webp | 13141533 (cut-out: helmet in gloved hand — no receiver-glove shots on Pexels) |
 | cleats c01–c10, cleat-gold | 32573999, 32574015, 32574010 (cut-outs + hue-rotated / gilded colourways) |
