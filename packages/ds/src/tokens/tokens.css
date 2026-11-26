@@ -59,7 +59,7 @@
   --fs-heading-xs: clamp(14px, 1.4vw, 16px);
   --fs-body: clamp(15px, 1.05vw, 17px);
   --fs-label: clamp(13px, 0.95vw, 15px);
-  --fs-label-sm: clamp(12px, 0.78vw, 13px);
+  --fs-label-sm: clamp(11px, 0.78vw, 13px);
   --fs-quote: clamp(44px, 9vw, 176px);
 
   /* ---- Motion --------------------------------------------------------- */

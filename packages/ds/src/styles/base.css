@@ -90,7 +90,9 @@ blockquote { quotes: none; }
   text-transform: uppercase;
 }
 .label { font-size: var(--fs-label); letter-spacing: 0.12em; }
+/* Reference .label-sm: 11–13px, weight 400 (measured on Home, On-Field, Off-Field, Journal, Partnerships). */
 .label-sm, .eyebrow { font-size: var(--fs-label-sm); letter-spacing: 0.16em; }
+.label-sm { font-weight: 400; }
 
 /* ---- Utilities ----------------------------------------------------------- */
 

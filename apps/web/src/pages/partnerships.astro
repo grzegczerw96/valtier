@@ -56,8 +56,9 @@ import { footerVariants } from '../site.config';
     margin: 0; text-align: center; line-height: 0.86; color: var(--color-purple-ink);
     font-size: var(--ph, clamp(38px, max(calc(var(--fvw) * 8.6), min(64px, 8.6vw)), 149px));
   }
-  /* Saira wdth 50 runs ~12.6% wider than the reference face: squeeze the line. */
-  .pt-partner__title :global(.pt-partner__reveal) { display: inline-block; white-space: nowrap; transform: scaleX(0.874); }
+  /* Saira wdth 50 runs ~12.6% wider than the reference face: squeeze the line. Its space is
+     also narrower, so widen word gaps back to the reference's .14em (after the squeeze). */
+  .pt-partner__title :global(.pt-partner__reveal) { display: inline-block; white-space: nowrap; transform: scaleX(0.874); word-spacing: 0.051em; }
   @media (max-width: 900px) and (pointer: coarse) {
     .pt-partner__title { --ph: min(17vw, max(64px, calc(8.6 * 1.8 * max(1vh, var(--min-h-phone) / 100)))); }
   }
