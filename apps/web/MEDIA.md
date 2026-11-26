@@ -96,3 +96,17 @@ No new stock: every entry reuses media already listed above, plus art drawn by `
 
 Card stills (entries without a clip) reuse photos listed above, picked free of maker marks and team names.
 Entry clips reuse `hero.mp4`, `off/appear/v01–v04.mp4` and `off/phones/ph02–ph05.mp4`.
+
+## Partnerships page
+
+No new stock. `scripts/gen-partnerships.py` (run as `python -E` from an empty cwd; Pillow, numpy, fontTools + brotli)
+builds everything under `public/media/partners/` from media listed above plus the site's OFL fonts:
+
+| File(s) | Made from | Notes |
+|---|---|---|
+| partners/*-key, -camp, -sideline, -tailgate, -session, -field.webp | records, reels, off/appear, off/fashion, influence-field | duotoned campaign posters with the partner's typographic wordmark |
+| partners/northline-key, -table, forge-shelf, volta-frames, volta-portrait, halo-studio, arena-card.webp | home/partner-*, cleats, off/pieces, journal/arena-99 | pack shots on a lit sweep / flat lay |
+| partners/t/*.webp | every still / poster in `content/partnerships.ts` | 240 px-tall hover-strip thumbnails (`thumbs`) |
+| ../textures/light-window.webp | procedural (`light`) | soft-light window wash over the sand page |
+
+`hero.mp4` is not used here: the socks in it carry a real maker mark.

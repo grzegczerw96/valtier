@@ -26,16 +26,21 @@ export const site: SiteSettings = {
   ],
   footerCredit: { label: 'Site by Studio 18', href: '#' },
   studioCredit: { label: 'A Northmark Project', href: '#' },
+  /** Partner wordmarks in Partnerships-list order (footer marquee, brand tickers). */
   partners: [
     { name: 'NORTHLINE', style: 'display', scale: 1.1 },
     { name: 'Kestrel', style: 'serif', scale: 1.15 },
-    { name: 'VOLTA', style: 'hero', scale: 0.95 },
-    { name: 'atlas & co', style: 'body', scale: 1.05 },
-    { name: 'HALO AUDIO', style: 'mono', scale: 1 },
-    { name: 'Meridian Bank', style: 'body', scale: 0.95, weight: 600 },
+    { name: 'FENNICK', style: 'display', scale: 1.15 },
     { name: 'FORGE', style: 'display', scale: 1.25 },
-    { name: 'Bravura', style: 'serif', scale: 1.1 },
+    { name: 'VOLTA', style: 'hero', scale: 0.95 },
+    { name: 'Rooster Row', style: 'hero', scale: 0.78 },
+    { name: 'HALO AUDIO', style: 'mono', scale: 1 },
+    { name: 'atlas & co', style: 'body', scale: 1.05 },
+    { name: 'Meridian Bank', style: 'body', scale: 0.95, weight: 600 },
     { name: 'PIXEL ARENA', style: 'hero', scale: 0.8 },
+    { name: 'corner slice', style: 'body', scale: 1, weight: 900 },
+    { name: 'Bravura', style: 'serif', scale: 1.1 },
+    { name: 'NOCTURNE', style: 'mono', scale: 1.15, tracking: '0.32em' },
   ],
 };
 
@@ -51,6 +56,12 @@ export const footerVariants: Record<string, FooterCta> = {
     phoneHeadline: ['Leave the', 'city', 'better'],
     cta: { label: 'Foundation', href: B + '/foundation' },
     image: { src: B + '/media/off/footer-portrait.webp', width: 1200, height: 1200, alt: 'Nico Valtier in chained sunglasses, chin on his hand', shift: 0.45 },
+  },
+  partnerships: {
+    headline: ['Let’s build', 'something together'],
+    phoneHeadline: ['Let’s build', 'something', 'together'],
+    cta: { label: 'Inquiries', href: B + '/inquiries' },
+    image: { src: B + '/media/footer-player.webp', width: 1200, height: 1200, alt: 'Nico Valtier seen from behind, ball in the air', shift: 0.45 },
   },
   onField: {
     headline: ['Built for', 'the big stage'],

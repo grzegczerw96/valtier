@@ -1,0 +1,66 @@
+---
+import Base from '../layouts/Base.astro';
+import PageBase from '@valtier/ds/components/PageBase.astro';
+import DotReveal from '@valtier/ds/components/DotReveal.astro';
+import InquiryCards from '@valtier/ds/components/InquiryCards.astro';
+import PartnershipsTitle from '../components/partnerships/PartnershipsTitle.astro';
+import PartnerList from '../components/partnerships/PartnerList.astro';
+import { title, partners, inquiry } from '../content/partnerships';
+import { footerVariants } from '../site.config';
+---
+<Base
+  title="Partnerships · Nico Valtier"
+  description="Nico Valtier's brand partnerships: footwear, hydration, eyewear, audio, gaming and more — and how to partner with Nico."
+  theme="tone-light"
+  footer={footerVariants.partnerships}
+>
+  <section class="pt-page" data-tone="light" data-partnerships-page aria-label={title}>
+    <!-- Inside the isolated page so the title can sit between the sand and the grain. -->
+    <PageBase base="var(--color-sand)" texture="pebble" blend="screen" wash="/textures/light-window.webp" phoneGlow />
+    <PartnershipsTitle text={title} />
+    <PartnerList partners={partners} />
+    <section class="pt-partner" data-section="pt-partner" aria-label={inquiry.heading}>
+      <div class="pt-partner__inner">
+        <h2 class="display pt-partner__title" aria-label={inquiry.heading}>
+          <DotReveal as="span" class="pt-partner__reveal">{inquiry.heading.toUpperCase()}</DotReveal>
+        </h2>
+        <div class="pt-partner__cards"><InquiryCards categories={inquiry.categories} tone="light" /></div>
+      </div>
+    </section>
+  </section>
+</Base>
+
+<script>
+  window.vDefer(async () => {
+    const { initAllDotReveals } = await import('@valtier/ds/motion/dot-reveal');
+    await window.vIdle();
+    initAllDotReveals(document.querySelector('.pt-partner') ?? document);
+  });
+</script>
+
+<style>
+  .pt-page {
+    --pt-gutter: 24px;
+    --fvw: min(var(--vu), 17.28px);
+    position: relative; isolation: isolate; min-height: 100svh; width: 100%; overflow-x: clip; padding-bottom: 32px;
+  }
+  @media (min-width: 768px) {
+    .pt-page { --pt-gutter: calc(var(--page-x) + 48px); padding-bottom: min(128px, calc(8.89 * var(--vu))); }
+  }
+  .pt-partner { position: relative; width: 100%; padding: 80px var(--pt-gutter) 96px; }
+  @media (min-width: 768px) {
+    .pt-partner { padding-top: min(112px, calc(7.78 * var(--vu))); padding-bottom: min(128px, calc(8.89 * var(--vu))); }
+  }
+  .pt-partner__inner { margin-inline: auto; display: flex; width: 100%; max-width: 1560px; flex-direction: column; align-items: center; }
+  .pt-partner__title {
+    margin: 0; text-align: center; line-height: 0.86; color: var(--color-purple-ink);
+    font-size: var(--ph, clamp(38px, max(calc(var(--fvw) * 8.6), min(64px, 8.6vw)), 149px));
+  }
+  /* Saira wdth 50 runs ~12.6% wider than the reference face: squeeze the line. */
+  .pt-partner__title :global(.pt-partner__reveal) { display: inline-block; white-space: nowrap; transform: scaleX(0.874); }
+  @media (max-width: 900px) and (pointer: coarse) {
+    .pt-partner__title { --ph: min(17vw, max(64px, calc(8.6 * 1.8 * max(1vh, var(--min-h-phone) / 100)))); }
+  }
+  .pt-partner__cards { margin-top: 28px; width: 100%; max-width: max(1240px, calc(var(--fvw) * 86.1)); }
+  @media (min-width: 768px) { .pt-partner__cards { margin-top: clamp(28px, calc(var(--fvw) * 2.6), 45px); } }
+</style>
