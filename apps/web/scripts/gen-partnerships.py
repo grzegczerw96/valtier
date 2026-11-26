@@ -332,21 +332,56 @@ def nocturne():
            mid=(40, 52, 120), centering=(0.5, 0.5), mark_pos="top", tag="RECOVERY STARTS AT NIGHT", tracking=0.2)
 
 
+# Soft-light window lights, as soft elliptical pools: base level + sum of rotated Gaussians
+# (x, y, sx, sy, angle, amount; x/y in texture units, x scaled to 16:9). Fitted (least squares)
+# to the reference's lighting layout, measured by inverting the soft-light blend on its sand page.
+WINDOW_BASE, WINDOW_POOLS = -1.1851, [
+        0.6335, 0.2013, 0.2137, 0.3399, 0.5494, -7.8642,
+        0.0905, 0.6566, 0.348, 0.1666, 1.2238, -1.7863,
+        0.4976, 0.165, 0.1106, 0.1449, 2.4857, -1.4201,
+        1.187, 0.7421, 0.1828, 0.6168, 1.1935, 2.7679,
+        0.4479, 0.0455, 0.3988, 0.6038, 0.4114, 23.8654,
+        0.5697, -0.1571, 0.2642, 0.1837, 3.0971, -9.6908,
+        0.3612, 0.202, 0.295, 0.4536, 0.031, -18.3262,
+    ]
+TONE_BASE, TONE_POOLS = -0.8158, [
+        0.3692, 0.1439, 0.1506, 0.7044, 1.6029, 0.564,
+        -0.5327, 1.0575, -0.1155, 0.4634, 2.4934, 0.4007,
+        -5.0437, -11.6553, -8.8605, 0.2808, 0.8983, -483.135,
+        -1.9799, -4.8594, 0.2849, 5.7249, -0.6681, 213.44,
+        1.3615, 7.3842, 1.8389, 0.1028, 1.3123, -624.972,
+        0.5278, 0.2422, -0.0822, -0.1887, 2.311, -0.613,
+    ]
+
+
+def pools(base, params, w=640, h=360):
+    u = (np.arange(w) + 0.5) / w * 16 / 9
+    v = (np.arange(h) + 0.5) / h
+    U, V = np.meshgrid(u, v)
+    m = np.full(U.shape, base)
+    for i in range(0, len(params), 6):
+        x, y, sx, sy, th, amt = params[i:i + 6]
+        c, s_ = np.cos(th), np.sin(th)
+        du, dv = U - x * 16 / 9, V - y
+        r1, r2 = (du * c + dv * s_) / max(abs(sx), 1e-3), (-du * s_ + dv * c) / max(abs(sy), 1e-3)
+        m = m + amt * np.exp(-0.5 * (r1 * r1 + r2 * r2))
+    return np.clip(m, 0, 1)
+
+
 def light():
-    """Window-light wash for the page (soft-light over sand): two bright panes split by
-    a diagonal mullion shadow, heavily blurred, white on transparent."""
-    w, h = 1440, 810
-    m = Image.new("L", (w, h), 0)
-    d = ImageDraw.Draw(m)
-    d.polygon([(0, 0), (500, 0), (430, 180), (560, 150), (330, 560), (180, 810), (0, 810)], fill=255)
-    d.polygon([(860, 0), (1440, 0), (1440, 810), (560, 810), (920, 420), (900, 330)], fill=255)
-    d.polygon([(1180, 0), (1440, 0), (1440, 300)], fill=150)
-    m = m.filter(ImageFilter.GaussianBlur(46))
-    img = Image.new("RGBA", (w, h), (255, 255, 255, 0))
-    img.putalpha(m)
-    p = os.path.join(HERE, "..", "public", "textures", "light-window.webp")
-    img.save(p, "WEBP", quality=70, method=6)
-    print("light-window.webp", os.path.getsize(p) // 1024, "KB")
+    """Soft-light window lights, white on transparent (alpha = light amount; equivalent to a
+    grey 0.5 + a/2 layer). light-window.webp: the Partnerships page wash (.85, under the
+    content): bright room light with a soft shadow from the top down to the middle and a
+    darker arc on the right, so the centre sits darker than the bottom. light-tone.webp:
+    the DS tone light (.45, over everything on light themes): a pool from the top-left."""
+    rng = np.random.default_rng(18)
+    for name, base, params in (("light-window.webp", WINDOW_BASE, WINDOW_POOLS), ("light-tone.webp", TONE_BASE, TONE_POOLS)):
+        a = pools(base, params) * 255 + rng.uniform(-1.5, 1.5, (360, 640))  # dither: no banding once scaled up
+        img = Image.new("RGBA", (640, 360), (255, 255, 255, 0))  # shown scaled up and soft
+        img.putalpha(Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)))
+        p = os.path.join(HERE, "..", "public", "textures", name)
+        img.save(p, "WEBP", lossless=True, method=6)
+        print(name, os.path.getsize(p) // 1024, "KB")
 
 
 def thumbs():

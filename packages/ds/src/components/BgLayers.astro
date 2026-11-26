@@ -1,9 +1,22 @@
 ---
 /** Fixed page background: theme colour, pebble-leather grain (multiply) and the
- *  footer leather (overlay) that fades in with --fdp. */
+ *  footer leather (overlay) that fades in with --fdp. Plus the "tone light": a soft
+ *  window light laid over everything (content included) while the body theme is light
+ *  (--light-wash-opacity, .45 on tone-light, like the reference) and gone under the footer. */
 ---
 <div class="bg-layers" aria-hidden="true">
   <div class="bg-layers__base"></div>
   <div class="bg-layers__texture bg-layers__texture--multiply"></div>
   <div class="bg-layers__texture bg-layers__texture--footer"></div>
 </div>
+<div class="tone-light" aria-hidden="true"></div>
+
+<style is:global>
+  .tone-light {
+    position: fixed; inset: 0; z-index: var(--z-tone-light); pointer-events: none; mix-blend-mode: soft-light;
+    background: url('/textures/light-tone.webp') center / cover no-repeat;
+    opacity: calc(var(--light-wash-opacity, 0) * (1 - var(--fdp, 0)));
+    transition: opacity var(--footer-fade) var(--ease-editorial);
+  }
+  @media (max-width: 767px), (max-width: 900px) and (pointer: coarse) { .tone-light { top: -10%; bottom: -10%; } }
+</style>

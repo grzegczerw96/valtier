@@ -119,6 +119,7 @@
   /* ---- Elevation (z-index scale) -------------------------------------- */
   --z-bg: -1;
   --z-content: 1;
+  --z-tone-light: 35;
   --z-sound: 40;
   --z-cursor: 75;
   --z-footer-fade: 75;
@@ -171,6 +172,7 @@
 }
 
 [data-theme="tone-light"] {
+  --light-wash-opacity: 0.45;
   --theme-bg: var(--color-sand);
   --theme-fg: var(--color-ink-deep);
   --theme-accent: var(--color-purple-rich);
