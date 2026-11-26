@@ -48,10 +48,12 @@ const at = (e: string) => (e.includes('@') ? [e.slice(0, e.indexOf('@') + 1), e.
   @media (min-width: 768px) { .iq__card { min-height: clamp(280px, calc(var(--fvw, 1vw) * 24), 415px); } }
   .iq__top { display: flex; flex-direction: column; gap: 20px; }
   .iq__label { color: var(--iq-label); }
-  .iq__name { margin: 0; color: var(--iq-name); font-size: clamp(28px, calc(var(--fvw, 1vw) * 2.6), 45px); line-height: 1; }
+  .iq__name { margin: 0; color: var(--iq-name); font-size: clamp(28px, calc(var(--fvw, 1vw) * 2.6), 45px); line-height: 1.05; }
   .iq__email { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--iq-email); overflow-wrap: anywhere; }
-  .iq__bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding-top: 24px; }
-  .iq__body { margin: 0; max-width: 34ch; font-size: clamp(15px, calc(var(--fvw, 1vw) * 1.05), 18px); line-height: 1.5; color: var(--iq-body); }
+  .iq__bottom { display: flex; align-items: flex-end; justify-content: space-between; padding-top: 24px; }
+  /* Reference: 34ch of its body face = 20.94em (our face's "0" is narrower, so 34ch would wrap earlier). */
+  /* Our body face sets ~2% wider than the reference's; tighter tracking (.002em vs .01em) keeps its line breaks. */
+  .iq__body { margin: 0; max-width: 20.94em; font-size: clamp(15px, calc(var(--fvw, 1vw) * 1.05), 18px); line-height: 1.5; letter-spacing: 0.002em; color: var(--iq-body); }
   .iq__dim { transition: opacity 450ms var(--ease-ui); }
   .iq__arrow {
     flex-shrink: 0; display: flex; color: var(--iq-arrow); opacity: 0; transform: translate(-4px, 4px);
